@@ -20,8 +20,8 @@ id,name,name_en,name_zh,price,price_with_tax,calorie,salt,category,category_en,c
 1413,キャロットラペ,Refreshing Carrot Salad,爽口胡萝卜沙拉,182,200,93,0.9,グランド,Grand Menu,主,前菜・おつまみ,false,🥕,AA13
 1414,モッツァレラトマト,Buffalo Mozzarella Cheese &  Tomato,布法罗马苏里拉奶酪和番茄,391,430,255,0.2,グランド,Grand Menu,主,前菜・おつまみ,false,🍅,AA14
 1415,カリッとポテト,Crispy Potatoes,酥烤马铃薯,255,280,389,2.1,グランド,Grand Menu,主,前菜・おつまみ,false,🥔,AA15
-1416,ポテトのグリル,Hashed Potato,,273,300,0,0.0,グランド,Grand Menu,主,前菜・おつまみ,false,🥔,
-1417,バッファローモッツァレラのカプレーゼ,Buffalo Mozzarella Cheese &  Tomato,,391,430,0,0.0,グランド,Grand Menu,主,前菜・おつまみ,false,🍅,
+1416,ポテトのグリル,Hashed Potato,,273,300,307,1.6,グランド,Grand Menu,主,前菜・おつまみ,false,🥔,
+1417,バッファローモッツァレラのカプレーゼ,Buffalo Mozzarella Cheese &  Tomato,,391,430,254,0.4,グランド,Grand Menu,主,前菜・おつまみ,false,🍅,
 1422,ハモン・セラーノ,Jamon Serrano,火腿塞拉诺,291,320,39,0.9,グランド,Grand Menu,主,前菜・おつまみ,false,🍖,AA22
 1423,生ハムとバッファローモッツァレラの盛合せ,Jamon Serrano &  Buffalo Mozzarella Cheese,火腿塞拉诺和水牛马苏里拉奶酪,455,500,146,1.0,グランド,Grand Menu,主,前菜・おつまみ,false,🧀,
 1425,柔らか青豆の温サラダ,Green Peas with  Cheese & Egg,鲜嫩青豆加佩科里诺干酪温色拉,182,200,216,1.4,グランド,Grand Menu,主,前菜・おつまみ,false,🫛,AA06
@@ -32,13 +32,13 @@ id,name,name_en,name_zh,price,price_with_tax,calorie,salt,category,category_en,c
 2106,タラコとエビのドリア,Doria with “TARAKO”Sauce & Shrimp,鳕鱼籽虾焗饭,364,400,578,2.8,グランド,Grand Menu,主,ドリア&グラタン,false,🥘,DG06
 2108,焼チーズ ミラノ風ドリア,Doria with Meat Sauce & Cheese,多利亚肉酱和奶酪,319,350,652,2.9,グランド,Grand Menu,主,ドリア&グラタン,false,🥘,DG08
 2109,エビとタラコのクリームグラタン（全粒粉）,Gratin with “TARAKO”Sauce & Shrimp,TARAKO醬蝦焗烤,391,400,481,2.1,グランド,Grand Menu,主,ドリア&グラタン,false,🥘,
-2110,タラコとポップコーンシュリンプのドリア,,,364,400,0,0.0,グランド,Grand Menu,主,ドリア&グラタン,false,🥘,
-2115,ポップコーンシュリンプとタラコのクリームグラタン（全粒粉）,,,391,430,0,0.0,グランド,Grand Menu,主,ドリア&グラタン,false,🥘,
+2110,タラコとポップコーンシュリンプのドリア,,,364,400,617,2.8,グランド,Grand Menu,主,ドリア&グラタン,false,🥘,
+2115,ポップコーンシュリンプとタラコのクリームグラタン（全粒粉）,,,391,430,591,2.6,グランド,Grand Menu,主,ドリア&グラタン,false,🥘,
 2203,バッファローモッツァレラのマルゲリータピザ,Pizza with  Buffalo Mozzarella Cheese,水牛马苏里拉披萨,364,400,544,2.4,グランド,Grand Menu,主,ピザ,false,🍕,PZ02
 2204,野菜ときのこのピザ,Pizza with Mushrooms & Vegetable Salsa,蔬菜蘑菇比萨,364,400,593,3.2,グランド,Grand Menu,主,ピザ,false,🍕,PZ04
 2206,たっぷりコーンのピザ,Corn Pizza,足量甜玉米比萨,364,400,624,2.6,グランド,Grand Menu,主,ピザ,false,🍕,PZ06
 2208,ソーセージピザ,Sausage Pizza,香肠比萨,364,400,710,4.1,グランド,Grand Menu,主,ピザ,false,🍕,PZ08
-2301,タラコソースシシリー風,,,364,400,0,0.0,グランド,Grand Menu,主,パスタ,false,🍝,
+2301,タラコソースシシリー風,,,364,400,538,2.2,グランド,Grand Menu,主,パスタ,false,🍝,
 2303,ペペロンチーノ,Spaghetti Peperoncino,香辣意面,273,300,582,1.9,グランド,Grand Menu,主,パスタ,false,🍝,PA03
 2304,パルマ風スパゲティ,Spaghetti with tomato＆pancetta,番茄培根意大利面,364,400,753,3.1,グランド,Grand Menu,主,パスタ,false,🍝,PA04
 2305,カルボナーラ,Spaghetti Carbonara,奶油培根意面,455,500,799,3.1,グランド,Grand Menu,主,パスタ,false,🍝,PA05
@@ -66,9 +66,9 @@ id,name,name_en,name_zh,price,price_with_tax,calorie,salt,category,category_en,c
 3106,プチフォッカ,Petit Focaccias,迷你香草面包,137,150,214,0.8,グランド,Grand Menu,主,ライス・パン,false,🍞,RP06
 3108,ミニフィセル,Mini Ficelle,迷你法式面包,137,150,189,1.0,グランド,Grand Menu,主,ライス・パン,false,🥖,RP08
 3109,ガーリックトースト,Garlic Toast,蒜香烤面包,182,200,245,1.1,グランド,Grand Menu,主,ライス・パン,false,🥖,RP09
-3110,フォッカチオ,,,137,150,0,0.0,グランド,Grand Menu,主,ライス・パン,false,🍞,
-3111,ガーリックフォッカチオ,,,182,200,0,0.0,グランド,Grand Menu,主,ライス・パン,false,🍞,
-3112,シナモンフォッカチオ,,,182,200,0,0.0,グランド,Grand Menu,主,ライス・パン,false,🍞,
+3110,フォッカチオ,,,137,150,241,0.6,グランド,Grand Menu,主,ライス・パン,false,🍞,
+3111,ガーリックフォッカチオ,,,182,200,297,0.8,グランド,Grand Menu,主,ライス・パン,false,🍞,
+3112,シナモンフォッカチオ,,,182,200,273,0.6,グランド,Grand Menu,主,ライス・パン,false,🍞,
 3201,ティラミス　クラシコ,Tiramisu,提拉米苏经典系列,273,300,229,0.1,グランド,Grand Menu,主,デザート (すぐに),false,🧁,DE01
 3204,ジェラート＆シナモンプチフォッカ,Petit Focaccias with Cinamon Sugar & Italian Gelato,肉桂糖迷你香草面包配意大利冰激淋,410,450,372,0.9,グランド,Grand Menu,主,デザート (すぐに),false,🍨,DE04
 3205,ミルクジェラート,Italian Gelato,意大利冰激淋,228,250,121,0.1,グランド,Grand Menu,主,デザート (すぐに),false,🍨,DE05
@@ -76,7 +76,7 @@ id,name,name_en,name_zh,price,price_with_tax,calorie,salt,category,category_en,c
 3207,チョコレートケーキ,Chocolate Cake,巧克力蛋糕,273,300,166,0.1,グランド,Grand Menu,主,デザート (すぐに),false,🍰,DE07
 3212,プリンとティラミス　クラシコの盛合せ,Tiramisu & Italian Cream Caramel,布丁配提拉米苏,455,500,445,0.2,グランド,Grand Menu,主,デザート (すぐに),false,🍮,DE12
 3213,トリフアイスクリーム,Ice Cream Truffle,松露冰激淋,319,350,164,0.1,グランド,Grand Menu,主,デザート (すぐに),false,🍨,DE13
-3214,ジェラート＆シナモンフォッカチオ,,,410,450,0,0.0,グランド,Grand Menu,主,デザート (すぐに),false,🍨,
+3214,ジェラート＆シナモンフォッカチオ,Gelato & Cinnamon Focaccia,冰激淋配肉桂佛卡夏,410,450,393,0.7,グランド,Grand Menu,主,デザート (すぐに),false,🍨,
 3215,コーヒーゼリー＆ミルクジェラート,Coffee Jelly with Italian Gelato,意大利冰激淋配咖啡果冻,319,350,165,0.1,グランド,Grand Menu,主,デザート (すぐに),false,🍨,DE15
 3301,生ビール キリン一番搾り　ジョッキ,,,364,400,0,0.0,グランド,Grand Menu,主,ビール・サワー・ノンアルコール,true,🍺,BR01
 3302,生ビール キリン一番搾り　グラスビール,,,273,300,0,0.0,グランド,Grand Menu,主,ビール・サワー・ノンアルコール,true,🍺,BR02
@@ -104,7 +104,7 @@ id,name,name_en,name_zh,price,price_with_tax,calorie,salt,category,category_en,c
 3907,チョコレートケーキ,Chocolate Cake,巧克力蛋糕,273,300,166,0.1,グランド,Grand Menu,主,デザート (あとで),false,🍰,DE07
 3912,プリンとティラミス　クラシコの盛合せ,Tiramisu & Italian Cream Caramel,布丁配提拉米苏,455,500,445,0.2,グランド,Grand Menu,主,デザート (あとで),false,🍮,DE12
 3913,トリフアイスクリーム,Ice Cream Truffle,松露冰激淋,319,350,164,0.1,グランド,Grand Menu,主,デザート (あとで),false,🍨,DE13
-3914,ジェラート＆シナモンフォッカチオ,,,410,450,0,0.0,グランド,Grand Menu,主,デザート (すぐに),false,🍨,
+3914,ジェラート＆シナモンフォッカチオ,Gelato & Cinnamon Focaccia,冰激淋配肉桂佛卡夏,410,450,393,0.7,グランド,Grand Menu,主,デザート (すぐに),false,🍨,
 3915,コーヒーゼリー＆ミルクジェラート,Coffee Jelly with Italian Gelato,意大利冰激淋配咖啡果冻,319,350,165,0.1,グランド,Grand Menu,主,デザート (あとで),false,🍨,DE15
 4301,トッピング半熟卵,Coddled Egg for Topping,加半熟蛋,46,50,83,0.2,グランド,Grand Menu,主,トッピング,false,🥚,TP01
 4304,トッピング野菜ソース,Vegetable Paste,蔬菜酱,91,100,72,0.3,グランド,Grand Menu,主,トッピング,false,🥗,TP04
@@ -114,3 +114,49 @@ id,name,name_en,name_zh,price,price_with_tax,calorie,salt,category,category_en,c
 5103,ドリンクバー単品,Drink Bar (Only),畅饮吧（單品）,273,300,0,0.0,グランド,Grand Menu,主,ドリンクバー,false,🥤,DB03
 5305,サイゼリヤ　ドレッシング (500ml),,,463,500,0,0.0,グランド,Grand Menu,主,ドレッシング・オリーブオイル,false,🧂,
 5306,エクストラ・バージン・オリーブオイル (500ml),,,1112,1200,0,0.0,グランド,Grand Menu,主,ドレッシング・オリーブオイル,false,🧂,
+5601,ハンバーグモーニング,Hamburg Steak Morning,汉堡牛排早餐,909,1000,868,6.5,モーニング,Morning,早餐,ハンバーグ,false,🍖,
+5602,タラコスパゲッティモーニング,Tarako Spaghetti Morning,鳕鱼籽意面早餐,909,1000,805,6.2,モーニング,Morning,早餐,パスタ,false,🍝,
+5603,フォッカチオモーニング,Focaccia Morning,佛卡夏早餐,909,1000,897,6.8,モーニング,Morning,早餐,ライス・パン,false,🍞,
+5604,フォッカチオ（モーニング）,Focaccia (Morning),佛卡夏（早餐）,137,150,272,0.7,モーニング,Morning,早餐,ライス・パン,false,🍞,
+5605,焼きシナモンフォッカチオ,Grilled Cinnamon Focaccia,烤肉桂佛卡夏,182,200,339,0.8,モーニング,Morning,早餐,ライス・パン,false,🍞,
+5606,パンチェッタとチーズのパニーニ,Pancetta & Cheese Panini,培根奶酪帕尼尼,273,300,422,1.8,モーニング,Morning,早餐,ライス・パン,false,🍞,
+5607,フォッカチオ（モーニング単品）,Focaccia (Morning Single),佛卡夏（早餐单品）,137,150,241,0.6,モーニング,Morning,早餐,ライス・パン,false,🍞,
+5615,焼きシナモンフォッカチオ コンビ,Grilled Cinnamon Focaccia Combo,烤肉桂佛卡夏套餐,273,300,339,0.8,モーニング,Morning,早餐,ライス・パン,false,🍞,
+5616,パンチェッタとチーズのパニーニ コンビ,Pancetta & Cheese Panini Combo,培根奶酪帕尼尼套餐,364,400,422,1.8,モーニング,Morning,早餐,ライス・パン,false,🍞,
+5625,焼きシナモンフォッカチオ セット,Grilled Cinnamon Focaccia Set,烤肉桂佛卡夏套餐,319,350,434,1.4,モーニング,Morning,早餐,ライス・パン,false,🍞,
+5626,パンチェッタとチーズのパニーニ セット,Pancetta & Cheese Panini Set,培根奶酪帕尼尼套餐,410,450,517,2.3,モーニング,Morning,早餐,ライス・パン,false,🍞,
+5627,フォッカチオ セット,Focaccia Set,佛卡夏套餐,273,300,367,1.3,モーニング,Morning,早餐,ライス・パン,false,🍞,
+5630,卵とパンチェッタとチーズのパニーニ,"Egg, Pancetta & Cheese Panini",鸡蛋培根奶酪帕尼尼,319,350,422,1.8,モーニング,Morning,早餐,ライス・パン,false,🍞,
+5631,卵とパンチェッタとチーズのパニーニ コンビ,"Egg, Pancetta & Cheese Panini Combo",鸡蛋培根奶酪帕尼尼套餐,410,450,422,1.8,モーニング,Morning,早餐,ライス・パン,false,🍞,
+5632,卵とパンチェッタとチーズのパニーニ セット,"Egg, Pancetta & Cheese Panini Set",鸡蛋培根奶酪帕尼尼套餐,455,500,517,2.4,モーニング,Morning,早餐,ライス・パン,false,🍞,
+7101,ランチスープ,Lunch Soup,午餐汤,0,0,3,1.4,ランチ,Lunch,午餐,スープ,false,🥣,
+7102,ランチサラダ（トマトサラダ）,Lunch Salad (Tomato Salad),午餐沙拉（番茄沙拉）,0,0,56,0.3,ランチ,Lunch,午餐,サラダ,false,🥗,
+7103,ランチサラダ（コールスロー）,Lunch Salad (Coleslaw),午餐沙拉（凉拌卷心菜）,0,0,129,0.7,ランチ,Lunch,午餐,サラダ,false,🥗,
+7104,ランチサラダ（コーン）,Lunch Salad (Corn),午餐沙拉（玉米）,0,0,61,0.4,ランチ,Lunch,午餐,サラダ,false,🥗,
+7105,タラコソースシシリー風（ランチ）,Tarako Sauce Siciliano (Lunch),鳕鱼籽酱西西里风味（午餐）,455,500,538,2.2,ランチ,Lunch,午餐,パスタ,false,🍝,
+7106,パルマ風スパゲッティ（ランチ）,Spaghetti with Tomato & Pancetta (Lunch),番茄培根意面（午餐）,455,500,726,3.6,ランチ,Lunch,午餐,パスタ,false,🍝,
+7107,ミートソースボロニア風（ランチ）,Spaghetti Meat Sauce (Lunch),意大利肉酱面（午餐）,455,500,584,3.0,ランチ,Lunch,午餐,パスタ,false,🍝,
+7108,牛100％オニオンソースのハンバーグ,100% Beef Hamburg Steak with Onion Sauce,纯牛肉洋葱酱汉堡牛排,546,600,474,2.6,ランチ,Lunch,午餐,ハンバーグ,false,🍖,
+7109,牛100％ディアボラ風ハンバーグ,100% Beef Hamburg Steak Diavola,纯牛肉恶魔风汉堡牛排,546,600,595,3.0,ランチ,Lunch,午餐,ハンバーグ,false,🍖,
+7110,ライス（ランチ）,Rice (Lunch),米饭（午餐）,0,0,303,0.1,ランチ,Lunch,午餐,ライス・パン,false,🍚,
+7111,フォッカチオ（ランチ）,Focaccia (Lunch),佛卡夏（午餐）,0,0,241,0.6,ランチ,Lunch,午餐,ライス・パン,false,🍞,
+7112,ガーリックフォッカチオ（ランチ）,Garlic Focaccia (Lunch),蒜香佛卡夏（午餐）,0,0,297,0.8,ランチ,Lunch,午餐,ライス・パン,false,🍞,
+8101,辛味チキン（テイクアウト）,Spicy Grilled Chicken (Takeout),香辣鸡翅（外带）,273,300,295,1.8,テイクアウト,Take-out,外带,前菜・おつまみ,false,🍗,
+8102,バッファローモッツァレラのマルゲリータピザ（テイクアウト）,Buffalo Mozzarella Margherita Pizza (Takeout),水牛马苏里拉披萨（外带）,364,400,539,2.4,テイクアウト,Take-out,外带,ピザ,false,🍕,
+8103,たっぷりコーンのピザ（テイクアウト）,Corn Pizza (Takeout),足量甜玉米比萨（外带）,364,400,568,2.8,テイクアウト,Take-out,外带,ピザ,false,🍕,
+8104,ソーセージピザ（テイクアウト）,Sausage Pizza (Takeout),香肠比萨（外带）,364,400,643,3.9,テイクアウト,Take-out,外带,ピザ,false,🍕,
+8105,野菜ときのこのピザ（テイクアウト）,Vegetable & Mushroom Pizza (Takeout),蔬菜蘑菇比萨（外带）,364,400,580,2.9,テイクアウト,Take-out,外带,ピザ,false,🍕,
+8106,ミラノ風ドリア（テイクアウト）,Meat Sauce Doria (Takeout),米兰风肉酱多利亚饭（外带）,273,300,550,2.7,テイクアウト,Take-out,外带,ドリア&グラタン,false,🥘,
+8107,冷凍イタリアンプリン（1個）,Frozen Italian Cream Caramel (1pc),冷冻意大利布丁（1个）,218,240,223,0.2,テイクアウト,Take-out,外带,デザート (すぐに),false,🍮,
+8108,冷凍辛味チキン（1.5kg）,Frozen Spicy Grilled Chicken (1.5kg),冷冻香辣鸡翅（1.5kg）,2000,2200,3690,22.1,テイクアウト,Take-out,外带,前菜・おつまみ,false,🍗,
+8109,サイゼリヤドレッシング（500ml）,SAIZERIYA Dressing (500ml),SAIZERIYA沙拉酱（500ml）,455,500,2430,11.9,テイクアウト,Take-out,外带,ドレッシング・オリーブオイル,false,🧂,
+8110,エクストラ・バージン・オリーブオイル（テイクアウト）,Extra Virgin Olive Oil (Takeout),特级初榨橄榄油（外带）,1091,1200,4050,0.0,テイクアウト,Take-out,外带,ドレッシング・オリーブオイル,false,🧂,
+9101,あさりとトマトのアクアパッツァ,Clams and Tomato Acqua Pazza,蛤蜊番茄意式水煮鱼,409,450,257,2.2,季節限定,Seasonal,季节限定,前菜・おつまみ,false,🥘,
+9102,チェリーソースのミルクジェラート,Milk Gelato with Classic Cherry Sauce,樱桃酱配牛奶冰激淋,409,450,179,0.1,季節限定,Seasonal,季节限定,デザート (すぐに),false,🍨,
+9103,チェリーソースのティラミス,Tiramisu with Classic Cherry Sauce,樱桃酱配提拉米苏,455,500,286,0.2,季節限定,Seasonal,季节限定,デザート (すぐに),false,🧁,
+9104,白桃ソースのミルクジェラート,Milk Gelato with White Peach Sauce,白桃酱配牛奶冰激淋,409,450,167,0.1,季節限定,Seasonal,季节限定,デザート (すぐに),false,🍨,
+9105,白桃ソースのティラミス,Tiramisu with Classic White Peach Sauce,白桃酱配提拉米苏,455,500,273,0.2,季節限定,Seasonal,季节限定,デザート (すぐに),false,🧁,
+9106,プロフィットロール,Profiteroles,泡芙,318,350,226,0.3,季節限定,Seasonal,季节限定,デザート (すぐに),false,🍰,
+9107,プロフィットロール＆ミルクジェラート,Profiteroles & Milk Gelato,泡芙配牛奶冰激淋,500,550,346,0.4,季節限定,Seasonal,季节限定,デザート (すぐに),false,🍨,
+9108,アップルタルト,Apple Tart,苹果塔,318,350,144,0.2,季節限定,Seasonal,季节限定,デザート (すぐに),false,🍰,
+9109,アップルタルト＆ミルクジェラート,Apple Tart & Milk Gelato,苹果塔配牛奶冰激淋,500,550,265,0.2,季節限定,Seasonal,季节限定,デザート (すぐに),false,🍨,

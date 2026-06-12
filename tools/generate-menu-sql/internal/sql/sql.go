@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"generate-menu-sql/internal/fetch"
 	"strconv"
+	"strings"
 )
 
 // PrepareInsertStatement は指定されたテーブル名、最大エントリ数、すべてのデータを基にINSERT文を生成する
@@ -57,8 +58,18 @@ func PrepareInsertStatement(tableName string, maxEntries int, allData map[string
 }
 
 // parsePrice は税抜価格を整数に変換する
+// 範囲指定（例: "100～300"）の場合は最初の値を返す
+// "－"や"-"の場合は0を返す
 func parsePrice(priceWithTax string) int {
-	price, err := strconv.Atoi(priceWithTax)
+	// 空白やダッシュの場合は0を返す
+	if priceWithTax == "" || priceWithTax == "－" || priceWithTax == "-" {
+		return 0
+	}
+	// 範囲指定の場合は最初の値を取得
+	if idx := strings.Index(priceWithTax, "～"); idx != -1 {
+		priceWithTax = priceWithTax[:idx]
+	}
+	price, err := strconv.Atoi(strings.TrimSpace(priceWithTax))
 	if err != nil {
 		fmt.Printf("価格変換エラー: %v\n", err)
 		return 0
@@ -67,17 +78,34 @@ func parsePrice(priceWithTax string) int {
 }
 
 // parseCalorie はカロリーを整数に変換する
+// 小数点以下の値は四捨五入する
+// "－"や"-"の場合は0を返す
 func parseCalorie(calorie string) int {
+	// 空白やダッシュの場合は0を返す
+	if calorie == "" || calorie == "－" || calorie == "-" {
+		return 0
+	}
+	// まず整数として変換を試みる
 	calorieInt, err := strconv.Atoi(calorie)
+	if err == nil {
+		return calorieInt
+	}
+	// 整数でない場合は浮動小数点数として変換
+	calorieFloat, err := strconv.ParseFloat(calorie, 64)
 	if err != nil {
 		fmt.Printf("カロリー変換エラー: %v\n", err)
 		return 0
 	}
-	return calorieInt
+	return int(calorieFloat + 0.5) // 四捨五入
 }
 
 // parseSalt は塩分を浮動小数点数に変換する
+// "－"や"-"の場合は0を返す
 func parseSalt(salt string) float64 {
+	// 空白やダッシュの場合は0を返す
+	if salt == "" || salt == "－" || salt == "-" {
+		return 0
+	}
 	saltFloat, err := strconv.ParseFloat(salt, 32)
 	if err != nil {
 		fmt.Printf("塩分変換エラー: %v\n", err)
@@ -100,6 +128,8 @@ func getCategoryId(category string) (int, error) {
 		return 4, nil
 	case "テイクアウト":
 		return 5, nil
+	case "季節":
+		return 6, nil
 	default:
 		return 0, fmt.Errorf("不明なカテゴリ: %s", category)
 	}
