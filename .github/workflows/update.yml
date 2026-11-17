@@ -30,9 +30,9 @@ jobs:
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
 
-      - uses: actions/setup-go@v6
+      - uses: actions/setup-go@v7
         with:
           # go.mod と同じバージョンに固定する。
           # mattn/go-sqlite3 は cgo なので、ツールチェーンを上げると

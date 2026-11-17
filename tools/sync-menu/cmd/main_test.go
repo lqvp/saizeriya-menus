@@ -2,6 +2,8 @@ package main
 
 import (
 	"database/sql"
+	"sort"
+	"strings"
 	"testing"
 
 	_ "github.com/mattn/go-sqlite3"
@@ -272,6 +274,9 @@ func TestDryRunDoesNotWrite(t *testing.T) {
 }
 
 // apply が途中で失敗したら、先行する変更もコミットされないこと。
+//
+// 1 件目は成功し 2 件目で失敗する状況を作る。1 件目の更新が
+// 残っていれば部分コミット、消えていればロールバックが効いている。
 func TestApplyRollsBackOnFailure(t *testing.T) {
 	conn, err := sql.Open("sqlite3", ":memory:")
 	if err != nil {
@@ -296,23 +301,50 @@ func TestApplyRollsBackOnFailure(t *testing.T) {
 	newCal := 99
 	rows := []db.Row{
 		{ID: 1, Name: "あ", CategoryID: 1, PriceNoTax: 100, PriceWithTax: 110, Calorie: &cal},
-		// 2 は DB に存在しない行を指す状態にはできないので、
-		// 代わりに tx を先に閉じて 2 件目で失敗させる。
+		{ID: 2, Name: "い", CategoryID: 1, PriceNoTax: 200, PriceWithTax: 220, Calorie: &cal},
 	}
 	values := map[int]match.Resolved{
 		1: {PriceWithTax: 110, Calorie: &newCal},
+		2: {PriceWithTax: 220, Calorie: &newCal},
 	}
 	changes, byID := collectChanges(rows, values)
+	if len(changes) != 2 {
+		t.Fatalf("len(changes) = %d, want 2", len(changes))
+	}
+	// 失敗する順序を固定する（map のイテレーション順に依存しないように）
+	sort.Slice(changes, func(i, j int) bool { return changes[i].id < changes[j].id })
 
-	if err := apply(conn, changes, byID, values); err != nil {
-		t.Fatalf("apply() error = %v", err)
+	// 2 件目の UPDATE だけ失敗させるトリガを張る。
+	if _, err := conn.Exec(`
+		CREATE TRIGGER fail_on_two BEFORE UPDATE ON menus
+		WHEN NEW.id = 2
+		BEGIN
+			SELECT RAISE(ABORT, 'intentional failure');
+		END;
+	`); err != nil {
+		t.Fatal(err)
 	}
 
+	err = apply(conn, changes, byID, values)
+	if err == nil {
+		t.Fatal("apply() should fail")
+	}
+	// どこで落ちたかがメッセージに含まれること
+	if !strings.Contains(err.Error(), "2 件目") {
+		t.Errorf("error = %v, want it to mention 2 件目", err)
+	}
+	if !strings.Contains(err.Error(), "ロールバック") {
+		t.Errorf("error = %v, want it to mention rollback", err)
+	}
+
+	// 1 件目が書き込まれていないこと（ロールバックの検証）
 	var got int
 	if err := conn.QueryRow(`SELECT calorie FROM menus WHERE id = 1`).Scan(&got); err != nil {
 		t.Fatal(err)
 	}
-	if got != 99 {
-		t.Errorf("calorie = %d, want 99", got)
+	if got != 10 {
+		t.Errorf("id=1 calorie = %d, want 10 (rollback must undo it)", got)
 	}
 }
+
+// apply が成功したら全件反映されること（ロールバックテストの対照）。
