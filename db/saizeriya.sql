@@ -249,12 +249,7 @@ INSERT INTO menus VALUES(9106,'プロフィットロール','Profiteroles','泡�
 INSERT INTO menus VALUES(9107,'プロフィットロール＆ミルクジェラート','Profiteroles & Milk Gelato','泡芙配牛奶冰激淋',536,590,346,0.3,6,32,0,22,NULL);
 INSERT INTO menus VALUES(9108,'アップルタルト','Apple Tart','苹果塔',336,370,144,0.1,6,32,0,24,NULL);
 INSERT INTO menus VALUES(9109,'アップルタルト＆ミルクジェラート','Apple Tart & Milk Gelato','苹果塔配牛奶冰激淋',536,590,265,0.2,6,32,0,22,NULL);
-PRAGMA writable_schema=ON;
-CREATE TABLE IF NOT EXISTS sqlite_sequence(name,seq);
 DELETE FROM sqlite_sequence;
 INSERT INTO sqlite_sequence VALUES('categories',6);
 INSERT INTO sqlite_sequence VALUES('icons',31);
-INSERT INTO sqlite_sequence VALUES('categories',6);
-INSERT INTO sqlite_sequence VALUES('icons',31);
-PRAGMA writable_schema=OFF;
 COMMIT;

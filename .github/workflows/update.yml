@@ -1,17 +1,32 @@
 name: Update
 
 on:
+  # 毎週月曜 3:00 JST に公式メニューを取り込む
+  schedule:
+    - cron: "0 18 * * 0"
   push:
     branches-ignore:
       - "main"
     paths:
       - "db/**"
       - "tools/converter/**"
+      - "tools/sync-menu/**"
+      - "tools/normalize-dump.py"
   workflow_dispatch:
+
+# DB と生成物を書き換えるため、同時に走らせない。
+# schedule と workflow_dispatch が重なると後勝ちで片方の更新が消える。
+# pull_request の CI とは別物なので、そちらには影響しない。
+concurrency:
+  group: update-menu
+  cancel-in-progress: false
 
 jobs:
   update:
     runs-on: ubuntu-latest
+    permissions:
+      # 生成物と DB をコミットするため書き込み権限が要る
+      contents: write
 
     steps:
       - name: Checkout repository
@@ -19,10 +34,14 @@ jobs:
 
       - uses: actions/setup-go@v7
         with:
-          go-version: "^1.21.3"
-          check-latest: true
+          # go.mod と同じバージョンに固定する。
+          # mattn/go-sqlite3 は cgo なので、ツールチェーンを上げると
+          # ランナーの GCC との組み合わせでビルドが壊れることがある。
+          # 上げるときは go.mod とセットで更新すること。
+          go-version-file: tools/converter/go.mod
           cache-dependency-path: |
             tools/converter/go.sum
+            tools/sync-menu/go.sum
 
       - name: Restore DB
         uses: ryohidaka/action-restore-sqlite@v0.1.0
@@ -30,12 +49,61 @@ jobs:
           db: "db/saizeriya.db"
           dump-file: "db/saizeriya.sql"
 
+      # 公式のアレルギー情報 API から価格・栄養値を取り込む。
+      # 行の追加・削除はしない（API に対象外の商品があるため）。
+      - name: Test sync tool
+        working-directory: tools/sync-menu
+        run: go test ./...
+
+      - name: Test normalize script
+        working-directory: tools
+        # モジュール名にハイフンを含むため discover では 0 件になる。
+        # ファイル名を直接指定して実行する。
+        run: python3 -m unittest normalize-dump_test
+
+      - name: Sync prices from official API
+        working-directory: tools/sync-menu
+        # 突合率が想定を下回ると 0 以外で終了し、ここで止まる
+        run: go run cmd/main.go -db ../../db/saizeriya.db
+
+      # sqlite3 のバージョンによって REAL の出力精度が変わる
+      # （3.46 は 1.39999999999999991、3.54 は 1.4）。
+      # 環境差で無意味な差分が出ないよう salt を正規化する。
+      - name: Dump DB to SQL
+        run: |
+          sqlite3 db/saizeriya.db ".output db/saizeriya.sql" ".dump"
+          python3 tools/normalize-dump.py db/saizeriya.sql
+
       - name: Update files
         run: cd tools/converter && go run cmd/main.go --csv --json --md
 
+      # データに変化がなければコミットしない。
+      # saizeriya.json の last_updated は毎回現在時刻になるため、
+      # その行だけの差分は「変化なし」とみなす。
+      - name: Check for data changes
+        id: diff
+        run: |
+          set -euo pipefail
+          # 時刻以外の差分を抽出する
+          substantive=$(git diff -U0 -- saizeriya.json \
+            | grep -E '^[+-]' \
+            | grep -vE '^(\+\+\+|---)' \
+            | grep -v 'last_updated' || true)
+          other=$(git diff --name-only -- db/saizeriya.sql saizeriya.csv saizeriya.md || true)
+
+          if [ -z "$substantive" ] && [ -z "$other" ]; then
+            echo "変化なし"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "変化あり:"
+            git diff --stat
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Commit and push changes
+        if: steps.diff.outputs.changed == 'true'
         uses: ryohidaka/action-commit-push@v0.6.0
         with:
-          files: "saizeriya.csv saizeriya.json saizeriya.md"
-          commit-message: "chore: Update files"
+          files: "db/saizeriya.sql saizeriya.csv saizeriya.json saizeriya.md"
+          commit-message: "chore: Update menu data from official API"
           rebase: true
