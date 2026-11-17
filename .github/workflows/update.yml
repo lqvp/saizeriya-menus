@@ -49,7 +49,31 @@ jobs:
       - name: Update files
         run: cd tools/converter && go run cmd/main.go --csv --json --md
 
+      # データに変化がなければコミットしない。
+      # saizeriya.json の last_updated は毎回現在時刻になるため、
+      # その行だけの差分は「変化なし」とみなす。
+      - name: Check for data changes
+        id: diff
+        run: |
+          set -euo pipefail
+          # 時刻以外の差分を抽出する
+          substantive=$(git diff -U0 -- saizeriya.json \
+            | grep -E '^[+-]' \
+            | grep -vE '^(\+\+\+|---)' \
+            | grep -v 'last_updated' || true)
+          other=$(git diff --name-only -- db/saizeriya.sql saizeriya.csv saizeriya.md || true)
+
+          if [ -z "$substantive" ] && [ -z "$other" ]; then
+            echo "変化なし"
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "変化あり:"
+            git diff --stat
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Commit and push changes
+        if: steps.diff.outputs.changed == 'true'
         uses: ryohidaka/action-commit-push@v0.6.0
         with:
           files: "db/saizeriya.sql saizeriya.csv saizeriya.json saizeriya.md"
