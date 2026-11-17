@@ -7,6 +7,7 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
 	"fmt"
 	"os"
@@ -16,12 +17,43 @@ import (
 	"sync-menu/internal/match"
 )
 
+// defaultMatchRateThreshold は「これ未満なら異常」とみなす突合率（%）。
+//
+// API は全商品を返さない（酒類・ドリンクバー等が無い）ため 100% にはならない。
+// 実測では 161 行中 89 行（約 55%）が突き合う。これを大きく下回るのは、
+// API の商品名が変わった・カテゴリが増えたなど、取りこぼしのサインである。
+const defaultMatchRateThreshold = 50
+
+type options struct {
+	dbPath       string
+	dryRun       bool
+	minMatchRate int
+}
+
+// change は 1 行分の更新内容。
+type change struct {
+	id     int
+	name   string
+	from   int
+	to     int
+	fields []string // 変わった項目（price / kcal / salt）
+}
+
 func main() {
 	dbPath := flag.String("db", "../../db/saizeriya.db", "SQLite データベースのパス")
 	dryRun := flag.Bool("dry-run", false, "更新内容を表示するだけで書き込まない")
+	minMatchRate := flag.Int(
+		"min-match-rate", defaultMatchRateThreshold,
+		"突合率の下限（%）。下回ると異常として終了コード 1 で止まる",
+	)
 	flag.Parse()
 
-	if err := run(*dbPath, *dryRun); err != nil {
+	opts := options{
+		dbPath:       *dbPath,
+		dryRun:       *dryRun,
+		minMatchRate: *minMatchRate,
+	}
+	if err := run(opts); err != nil {
 		fmt.Fprintf(os.Stderr, "エラー: %v\n", err)
 		os.Exit(1)
 	}
@@ -43,7 +75,7 @@ func sameFloat(a, b *float64) bool {
 	return *a == *b
 }
 
-func run(dbPath string, dryRun bool) error {
+func run(opts options) error {
 	fmt.Println("公式メニュー API からデータを取得中...")
 	resp, err := fetch.Fetch(nil)
 	if err != nil {
@@ -51,9 +83,13 @@ func run(dbPath string, dryRun bool) error {
 	}
 	fmt.Printf("  %d 件を取得しました (lastModified=%s)\n", len(resp.Body), resp.LastModified)
 
-	conn, err := db.Open(dbPath)
+	conn, err := db.Open(opts.dbPath)
 	if err != nil {
-		return err
+		return fmt.Errorf(
+			"%w\nヒント: リポジトリ直下から実行する場合は -db db/saizeriya.db を指定してください"+
+				"（DB が無い場合は make restore で復元できます）",
+			err,
+		)
 	}
 	defer func() { _ = conn.Close() }()
 
@@ -65,37 +101,80 @@ func run(dbPath string, dryRun bool) error {
 
 	result := match.Resolve(rows, resp.Body)
 
-	// 変更のある行だけを抽出する
+	// 突合率を出す。マッチしなかった行は更新されないため、
+	// ここが下がったら API 側の変化を疑う。
+	rate := 0
+	if len(rows) > 0 {
+		rate = result.Matched * 100 / len(rows)
+	}
+	fmt.Printf("\n突合: %d / %d 件（%d%%）\n", result.Matched, len(rows), rate)
+
+	if len(result.Ambiguous) > 0 {
+		fmt.Printf("\n⚠️  API 候補が複数あり、一意に決められないため見送った行: %d 件\n",
+			len(result.Ambiguous))
+		for _, a := range result.Ambiguous {
+			fmt.Printf("  %s (category_id=%d)\n", a.Name, a.CategoryID)
+		}
+	}
+
+	if len(result.Propagated) > 0 {
+		fmt.Printf("  pre_id 伝播: %d 件\n", len(result.Propagated))
+	}
+
+	// 突合率が下限を下回るなら、データを書く前に止める。
+	if rate < opts.minMatchRate {
+		return fmt.Errorf(
+			"突合率 %d%% が下限 %d%% を下回りました。API の商品名・カテゴリが変わっていないか確認してください",
+			rate, opts.minMatchRate,
+		)
+	}
+
+	changes, byID := collectChanges(rows, result.Values)
+	if len(changes) == 0 {
+		fmt.Println("\n更新対象はありませんでした")
+		return nil
+	}
+
+	report(changes)
+
+	if opts.dryRun {
+		fmt.Println("\n--dry-run のため書き込みませんでした")
+		return nil
+	}
+
+	if err := apply(conn, changes, byID, result.Values); err != nil {
+		return err
+	}
+
+	fmt.Printf("\n%d 件を更新しました\n", len(changes))
+	return nil
+}
+
+// collectChanges は「実際に値が変わる行」だけを抽出する。
+//
+// 価格・カロリー・塩分のどれかが変わっていれば書き込み対象にする。
+// 価格だけを見ると、栄養値だけが更新された商品を取りこぼす。
+func collectChanges(rows []db.Row, values map[int]match.Resolved) ([]change, map[int]db.Row) {
 	byID := make(map[int]db.Row, len(rows))
 	for _, r := range rows {
 		byID[r.ID] = r
 	}
 
-	type change struct {
-		id     int
-		name   string
-		from   int
-		to     int
-		fields []string // 価格以外に変わった項目
-	}
-
-	// 価格・カロリー・塩分のどれかが変わっていれば書き込み対象。
-	// 価格だけを見ると、栄養値だけが更新された商品を取りこぼす。
 	var changes []change
-	for id, v := range result.Values {
+	for id, v := range values {
 		row, ok := byID[id]
 		if !ok {
 			continue
 		}
 		var fields []string
+		if row.PriceWithTax != v.PriceWithTax {
+			fields = append(fields, "price")
+		}
 		if !sameInt(row.Calorie, v.Calorie) {
 			fields = append(fields, "kcal")
 		}
 		if !sameFloat(row.Salt, v.Salt) {
 			fields = append(fields, "salt")
-		}
-		if row.PriceWithTax != v.PriceWithTax {
-			fields = append([]string{"price"}, fields...)
 		}
 		if len(fields) > 0 {
 			changes = append(changes, change{
@@ -105,17 +184,11 @@ func run(dbPath string, dryRun bool) error {
 			})
 		}
 	}
+	return changes, byID
+}
 
-	if len(result.Propagated) > 0 {
-		fmt.Printf("  pre_id 伝播: %d 件\n", len(result.Propagated))
-	}
-
-	if len(changes) == 0 {
-		fmt.Println("更新対象はありませんでした")
-		return nil
-	}
-
-	// 価格が動いたものと、栄養値だけ動いたものを分けて出す
+// report は変更内容を人間向けに出力する。
+func report(changes []change) {
 	var priceChanges []change
 	for _, c := range changes {
 		if c.from != c.to {
@@ -127,8 +200,7 @@ func run(dbPath string, dryRun bool) error {
 	for _, c := range priceChanges {
 		fmt.Printf("  %d %s: ¥%d → ¥%d\n", c.id, c.name, c.from, c.to)
 	}
-	nutritionOnly := len(changes) - len(priceChanges)
-	if nutritionOnly > 0 {
+	if nutritionOnly := len(changes) - len(priceChanges); nutritionOnly > 0 {
 		fmt.Printf("  栄養値のみの更新: %d 件\n", nutritionOnly)
 	}
 
@@ -142,18 +214,25 @@ func run(dbPath string, dryRun bool) error {
 	if decreases > 0 {
 		fmt.Printf("\n⚠️  値下げが %d 件あります。マッチングを確認してください\n", decreases)
 	}
+}
 
-	if dryRun {
-		fmt.Println("\n--dry-run のため書き込みませんでした")
-		return nil
-	}
-
+// apply は変更をまとめて書き込む。
+//
+// 途中で失敗したらロールバックし、何件目で落ちたかを返す。
+// CI のログだけを見て「どこまで進んだか」が分かるようにするため。
+func apply(
+	conn *sql.DB,
+	changes []change,
+	byID map[int]db.Row,
+	values map[int]match.Resolved,
+) error {
 	tx, err := conn.Begin()
 	if err != nil {
 		return fmt.Errorf("トランザクションを開始できませんでした: %w", err)
 	}
-	for _, c := range changes {
-		v := result.Values[c.id]
+
+	for i, c := range changes {
+		v := values[c.id]
 		row := byID[c.id]
 		priceNoTax := row.PriceNoTax
 		if row.PriceWithTax != v.PriceWithTax {
@@ -163,14 +242,21 @@ func run(dbPath string, dryRun bool) error {
 		if err := db.UpdateNutrition(
 			tx, c.id, priceNoTax, v.PriceWithTax, v.Calorie, v.Salt,
 		); err != nil {
-			_ = tx.Rollback()
-			return err
+			rollbackErr := tx.Rollback()
+			msg := fmt.Sprintf(
+				"%d 件目（id=%d %s）で失敗しました",
+				i+1, c.id, c.name,
+			)
+			if rollbackErr != nil {
+				return fmt.Errorf("%s。ロールバックにも失敗しました: %w（元のエラー: %w）",
+					msg, rollbackErr, err)
+			}
+			return fmt.Errorf("%s。ここまでの更新はロールバック済みです: %w", msg, err)
 		}
 	}
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("コミットに失敗しました: %w", err)
-	}
 
-	fmt.Printf("\n%d 件を更新しました\n", len(changes))
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("コミットに失敗しました（更新は反映されていません）: %w", err)
+	}
 	return nil
 }

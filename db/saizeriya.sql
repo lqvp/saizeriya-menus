@@ -95,7 +95,7 @@ INSERT INTO menus VALUES(1208,'グリーンサラダ','Green Salad','绿色的�
 INSERT INTO menus VALUES(1209,'チキンのサラダ','Chicken Salad','鸡肉沙拉',336,370,267,1,1,12,0,1,'SA03');
 INSERT INTO menus VALUES(1301,'コーンクリームスープ','Creamy Corn Soup','奶油玉米浓汤',145,160,150,1,1,13,0,2,'SU01');
 INSERT INTO menus VALUES(1305,'田舎風ミネストローネ','Country-style Minestrone','田园风蔬菜汤',291,320,183,2.4,1,13,0,2,'SU05');
-INSERT INTO menus VALUES(1307,'たまねぎのズッパ','Onion soup, Zuppa','洋葱面包汤',291,320,278,2.39999999999999991,1,13,0,2,'SU07');
+INSERT INTO menus VALUES(1307,'たまねぎのズッパ','Onion soup, Zuppa','洋葱面包汤',291,320,278,2.4,1,13,0,2,'SU07');
 INSERT INTO menus VALUES(1401,'辛味チキン','Spicy Grilled Chicken','香辣鸡翅',291,320,295,1.8,1,14,0,3,'AA01');
 INSERT INTO menus VALUES(1402,'アロスティチーニ（ラムの串焼き）','Arrosticini (Lamb skewers)','意式羊肉串（烤羊肉串）',382,420,188,0.6,1,14,0,4,'AA02');
 INSERT INTO menus VALUES(1403,'ほうれん草のソテー','Sauteed Spinach（Salt Oil Sauce）','炖煮菠菜（盐油酱）',191,210,223,1.2,1,14,0,5,'AA03');
@@ -215,8 +215,8 @@ INSERT INTO menus VALUES(5616,'パンチェッタとチーズのパニーニ コ
 INSERT INTO menus VALUES(5625,'焼きシナモンフォッカチオ セット','Grilled Cinnamon Focaccia Set','烤肉桂佛卡夏套餐',318,350,361,1.3,3,31,0,20,NULL);
 INSERT INTO menus VALUES(5626,'パンチェッタとチーズのパニーニ セット','Pancetta & Cheese Panini Set','培根奶酪帕尼尼套餐',409,450,434,2.1,3,31,0,20,NULL);
 INSERT INTO menus VALUES(5627,'フォッカチオ セット','Focaccia Set','佛卡夏套餐',273,300,294,1.2,3,31,0,20,NULL);
-INSERT INTO menus VALUES(5630,'卵とパンチェッタとチーズのパニーニ','Egg, Pancetta & Cheese Panini','鸡蛋培根奶酪帕尼尼',318,350,418,1.89999999999999991,3,31,0,20,NULL);
-INSERT INTO menus VALUES(5631,'卵とパンチェッタとチーズのパニーニ コンビ','Egg, Pancetta & Cheese Panini Combo','鸡蛋培根奶酪帕尼尼套餐',409,450,418,1.89999999999999991,3,31,0,20,NULL);
+INSERT INTO menus VALUES(5630,'卵とパンチェッタとチーズのパニーニ','Egg, Pancetta & Cheese Panini','鸡蛋培根奶酪帕尼尼',318,350,418,1.9,3,31,0,20,NULL);
+INSERT INTO menus VALUES(5631,'卵とパンチェッタとチーズのパニーニ コンビ','Egg, Pancetta & Cheese Panini Combo','鸡蛋培根奶酪帕尼尼套餐',409,450,418,1.9,3,31,0,20,NULL);
 INSERT INTO menus VALUES(5632,'卵とパンチェッタとチーズのパニーニ セット','Egg, Pancetta & Cheese Panini Set','鸡蛋培根奶酪帕尼尼套餐',455,500,513,2.5,3,31,0,20,NULL);
 INSERT INTO menus VALUES(7101,'ランチスープ','Lunch Soup','午餐汤',0,0,8,2.7,2,13,0,2,NULL);
 INSERT INTO menus VALUES(7102,'ランチサラダ（トマトサラダ）','Lunch Salad (Tomato Salad)','午餐沙拉（番茄沙拉）',0,0,56,0.3,2,12,0,1,NULL);
@@ -250,8 +250,6 @@ INSERT INTO menus VALUES(9107,'プロフィットロール＆ミルクジェラ�
 INSERT INTO menus VALUES(9108,'アップルタルト','Apple Tart','苹果塔',336,370,144,0.1,6,32,0,24,NULL);
 INSERT INTO menus VALUES(9109,'アップルタルト＆ミルクジェラート','Apple Tart & Milk Gelato','苹果塔配牛奶冰激淋',536,590,265,0.2,6,32,0,22,NULL);
 DELETE FROM sqlite_sequence;
-INSERT INTO sqlite_sequence VALUES('categories',6);
-INSERT INTO sqlite_sequence VALUES('icons',31);
 INSERT INTO sqlite_sequence VALUES('categories',6);
 INSERT INTO sqlite_sequence VALUES('icons',31);
 COMMIT;

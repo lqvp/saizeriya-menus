@@ -14,6 +14,9 @@ import (
 // 酒類・ドリンクバーなど一部の商品は含まれない。
 const Endpoint = "https://allergy.saizeriya.co.jp/view?lg=ja"
 
+// Timeout は API 呼び出しの制限時間。
+const Timeout = 30 * time.Second
+
 // Item は API が返す 1 商品分のデータ。
 type Item struct {
 	No           string `json:"no"`
@@ -32,12 +35,20 @@ type Response struct {
 
 // Fetch はメニューデータを取得する。
 // ネットワークエラーや想定外のレスポンスはすべてエラーとして返す。
+//
+// client が nil なら Timeout 付きの既定クライアントを使う。
 func Fetch(client *http.Client) (*Response, error) {
+	return FetchFrom(client, Endpoint)
+}
+
+// FetchFrom は任意の URL からメニューデータを取得する。
+// テストで httptest サーバーを指すために切り出している。
+func FetchFrom(client *http.Client, url string) (*Response, error) {
 	if client == nil {
-		client = &http.Client{Timeout: 30 * time.Second}
+		client = &http.Client{Timeout: Timeout}
 	}
 
-	resp, err := client.Get(Endpoint)
+	resp, err := client.Get(url)
 	if err != nil {
 		return nil, fmt.Errorf("メニュー API の取得に失敗しました: %w", err)
 	}
@@ -57,9 +68,18 @@ func Fetch(client *http.Client) (*Response, error) {
 		return nil, fmt.Errorf("レスポンスのパースに失敗しました: %w", err)
 	}
 
-	// 空のレスポンスで DB を壊さないよう、ここで弾く
+	// 空のレスポンスで DB を壊さないよう、ここで弾く。
+	// json.Unmarshal は {"body": null} も成功するため、空チェックは必須。
 	if len(parsed.Body) == 0 {
 		return nil, fmt.Errorf("メニュー API が空のデータを返しました")
+	}
+
+	// 商品名が空のエントリは照合に使えない。混じっていれば
+	// レスポンスの形が変わったサインなので失敗させる。
+	for i, item := range parsed.Body {
+		if item.Name == "" {
+			return nil, fmt.Errorf("メニュー API の %d 件目に商品名がありません", i+1)
+		}
 	}
 
 	return &parsed, nil

@@ -30,7 +30,7 @@ erDiagram
         INTEGER price
         INTEGER price_with_tax
         INTEGER calorie
-        INTEGER salt
+        REAL salt
         INTEGER category_id FK
         INTEGER genre_id FK
         INTEGER icon_id FK
@@ -79,8 +79,22 @@ erDiagram
 | `price`          | 税抜価格                    | `INTEGER` | `319`            |
 | `price_with_tax` | 税込価格                    | `INTEGER` | `350`            |
 | `calorie`        | エネルギー(カロリー) (kcal) | `INTEGER` | `192`            |
-| `salt`           | 食塩相当量 (g)              | `INTEGER` | `1.5`            |
+| `salt`           | 食塩相当量 (g)              | `REAL`    | `1.5`            |
 | `category_id`    | カテゴリ ID                 | `INTEGER` | `1`              |
 | `genre_id`       | ジャンル ID                 | `INTEGER` | `12`             |
 | `icon_id`        | アイコン ID                 | `INTEGER` | `6`              |
 | `pre_id`         | 旧メニュー ID               | `TEXT`    | `SA02`           |
+
+> [!WARNING]
+> `pre_id` は「商品を一意に指す ID」ではない。テーブルをまたぐと意味が変わるうえ、
+> `menus` の中でも次の 2 種類が混在している。
+>
+> | 対象              | 意味                                | 例           |
+> | ----------------- | ----------------------------------- | ------------ |
+> | 1xxx〜8xxx        | 商品 SKU コード                     | `SA02`       |
+> | 32xx / 39xx       | デザートのペアキー（同じ値で 2 行） | `DE01`       |
+>
+> さらに `AA06` のように、**別商品が同じ `pre_id` を共有している**行も実在する
+> （`1406 小エビのカクテル` と `1425 柔ら青豆の温サラダ`）。
+> `pre_id` を手がかりに値をコピーする処理を書くときは、`category_id` と
+> 正規化後の `name` でも一致を確認すること。

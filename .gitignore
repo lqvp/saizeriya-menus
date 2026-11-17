@@ -6,4 +6,7 @@ __pycache__/
 *.pyc
 
 # SQLite（make restore で生成する）
+# db/.gitignore にも *.db があるが、リポジトリ直下から見ても
+# 意図が分かるようここにも残している。
 db/*.db
+db/*.db.tmp

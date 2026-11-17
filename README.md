@@ -27,21 +27,29 @@
 価格と栄養値は公式アレルギー情報 API から取得しています。GitHub Actions が毎週月曜 3:00 (JST) に自動で取り込みます。手元で実行する場合:
 
 ```bash
-# DB を復元
-sqlite3 db/saizeriya.db < db/saizeriya.sql
+# DB を復元（以降のコマンドはリポジトリ直下で実行）
+make restore
 
 # 公式 API から価格・栄養値を取り込む（--dry-run で確認のみ）
 cd tools/sync-menu
 go run cmd/main.go -db ../../db/saizeriya.db --dry-run
+cd ../..
 
 # SQL に書き戻して生成物を更新
-cd ../..
-sqlite3 db/saizeriya.db ".output db/saizeriya.sql" ".dump"
+make dump
 cd tools/converter && go run cmd/main.go --csv --json --md
 ```
 
+`make restore` / `make dump` は CI と同じ手順をまとめたものです。`make dump` は
+`.dump` のあとに `tools/normalize-dump.py` を通します。これは sqlite3 の
+バージョン差（REAL の出力精度や `PRAGMA` の有無）で無意味な差分が出るのを
+防ぐためで、**この正規化を省くとデータが変わっていなくても差分が出ます**。
+
+`make check` で「復元 → 同期 → ダンプ」を通し、差分が出ないことまで確認できます。
+
 > [!NOTE]
 > アレルギー情報 API はアレルゲン表示の対象商品しか返しません（酒類・ドリンクバー等が含まれない）。そのため `sync-menu` は既存行を残したまま価格と栄養値だけを更新し、行の追加・削除は行いません。
+> 突合率が 50% を下回ると異常とみなして失敗します（`-min-match-rate` で変更可）。
 
 ## [コントリビュートガイド](./CONTRIBUTING.md)
 

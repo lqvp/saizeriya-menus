@@ -10,7 +10,16 @@ on:
     paths:
       - "db/**"
       - "tools/converter/**"
+      - "tools/sync-menu/**"
+      - "tools/normalize-dump.py"
   workflow_dispatch:
+
+# DB と生成物を書き換えるため、同時に走らせない。
+# schedule と workflow_dispatch が重なると後勝ちで片方の更新が消える。
+# pull_request の CI とは別物なので、そちらには影響しない。
+concurrency:
+  group: update-menu
+  cancel-in-progress: false
 
 jobs:
   update:
@@ -25,8 +34,11 @@ jobs:
 
       - uses: actions/setup-go@v6
         with:
-          go-version: "^1.21.3"
-          check-latest: true
+          # go.mod と同じバージョンに固定する。
+          # mattn/go-sqlite3 は cgo なので、ツールチェーンを上げると
+          # ランナーの GCC との組み合わせでビルドが壊れることがある。
+          # 上げるときは go.mod とセットで更新すること。
+          go-version-file: tools/converter/go.mod
           cache-dependency-path: |
             tools/converter/go.sum
             tools/sync-menu/go.sum
@@ -43,8 +55,15 @@ jobs:
         working-directory: tools/sync-menu
         run: go test ./...
 
+      - name: Test normalize script
+        working-directory: tools
+        # モジュール名にハイフンを含むため discover では 0 件になる。
+        # ファイル名を直接指定して実行する。
+        run: python3 -m unittest normalize-dump_test
+
       - name: Sync prices from official API
         working-directory: tools/sync-menu
+        # 突合率が想定を下回ると 0 以外で終了し、ここで止まる
         run: go run cmd/main.go -db ../../db/saizeriya.db
 
       # sqlite3 のバージョンによって REAL の出力精度が変わる
