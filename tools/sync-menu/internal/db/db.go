@@ -4,6 +4,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"math"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -79,10 +80,19 @@ func UpdateNutrition(
 	conn Execer, id, priceWithTax int, calorie *int, salt *float64,
 ) error {
 	priceNoTax := int(float64(priceWithTax)/1.1 + 0.5)
+
+	// salt は小数点以下 1 桁までしか意味を持たない。
+	// float64 をそのまま渡すと 1.4 が 1.39999999999999991 として
+	// SQL に書かれてしまうため、ここで丸める。
+	var saltArg any
+	if salt != nil {
+		saltArg = math.Round(*salt*10) / 10
+	}
+
 	_, err := conn.Exec(
 		`UPDATE menus SET price = ?, price_with_tax = ?, calorie = ?, salt = ?
 		 WHERE id = ?`,
-		priceNoTax, priceWithTax, calorie, salt, id,
+		priceNoTax, priceWithTax, calorie, saltArg, id,
 	)
 	if err != nil {
 		return fmt.Errorf("id=%d の更新に失敗しました: %w", id, err)
