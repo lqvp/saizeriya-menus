@@ -27,6 +27,22 @@ func main() {
 	}
 }
 
+// sameInt はポインタ同士を比較する（どちらも nil なら等しい）。
+func sameInt(a, b *int) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return *a == *b
+}
+
+// sameFloat はポインタ同士を比較する（どちらも nil なら等しい）。
+func sameFloat(a, b *float64) bool {
+	if a == nil || b == nil {
+		return a == b
+	}
+	return *a == *b
+}
+
 func run(dbPath string, dryRun bool) error {
 	fmt.Println("公式メニュー API からデータを取得中...")
 	resp, err := fetch.Fetch(nil)
@@ -56,19 +72,37 @@ func run(dbPath string, dryRun bool) error {
 	}
 
 	type change struct {
-		id   int
-		name string
-		from int
-		to   int
+		id     int
+		name   string
+		from   int
+		to     int
+		fields []string // 価格以外に変わった項目
 	}
+
+	// 価格・カロリー・塩分のどれかが変わっていれば書き込み対象。
+	// 価格だけを見ると、栄養値だけが更新された商品を取りこぼす。
 	var changes []change
 	for id, v := range result.Values {
 		row, ok := byID[id]
 		if !ok {
 			continue
 		}
+		var fields []string
+		if !sameInt(row.Calorie, v.Calorie) {
+			fields = append(fields, "kcal")
+		}
+		if !sameFloat(row.Salt, v.Salt) {
+			fields = append(fields, "salt")
+		}
 		if row.PriceWithTax != v.PriceWithTax {
-			changes = append(changes, change{id, row.Name, row.PriceWithTax, v.PriceWithTax})
+			fields = append([]string{"price"}, fields...)
+		}
+		if len(fields) > 0 {
+			changes = append(changes, change{
+				id: id, name: row.Name,
+				from: row.PriceWithTax, to: v.PriceWithTax,
+				fields: fields,
+			})
 		}
 	}
 
@@ -81,14 +115,26 @@ func run(dbPath string, dryRun bool) error {
 		return nil
 	}
 
-	fmt.Printf("\n価格変更: %d 件\n", len(changes))
+	// 価格が動いたものと、栄養値だけ動いたものを分けて出す
+	var priceChanges []change
 	for _, c := range changes {
+		if c.from != c.to {
+			priceChanges = append(priceChanges, c)
+		}
+	}
+
+	fmt.Printf("\n更新: %d 件（うち価格変更 %d 件）\n", len(changes), len(priceChanges))
+	for _, c := range priceChanges {
 		fmt.Printf("  %d %s: ¥%d → ¥%d\n", c.id, c.name, c.from, c.to)
+	}
+	nutritionOnly := len(changes) - len(priceChanges)
+	if nutritionOnly > 0 {
+		fmt.Printf("  栄養値のみの更新: %d 件\n", nutritionOnly)
 	}
 
 	// 値下げは想定外のマッチングの可能性があるため目立たせる
 	var decreases int
-	for _, c := range changes {
+	for _, c := range priceChanges {
 		if c.to < c.from {
 			decreases++
 		}
@@ -106,8 +152,17 @@ func run(dbPath string, dryRun bool) error {
 	if err != nil {
 		return fmt.Errorf("トランザクションを開始できませんでした: %w", err)
 	}
-	for id, v := range result.Values {
-		if err := db.UpdateNutrition(tx, id, v.PriceWithTax, v.Calorie, v.Salt); err != nil {
+	for _, c := range changes {
+		v := result.Values[c.id]
+		row := byID[c.id]
+		priceNoTax := row.PriceNoTax
+		if row.PriceWithTax != v.PriceWithTax {
+			// 税込価格が変わったときだけ税抜を計算し直す
+			priceNoTax = int(float64(v.PriceWithTax)/1.1 + 0.5)
+		}
+		if err := db.UpdateNutrition(
+			tx, c.id, priceNoTax, v.PriceWithTax, v.Calorie, v.Salt,
+		); err != nil {
 			_ = tx.Rollback()
 			return err
 		}
@@ -116,6 +171,6 @@ func run(dbPath string, dryRun bool) error {
 		return fmt.Errorf("コミットに失敗しました: %w", err)
 	}
 
-	fmt.Printf("\n%d 件を更新しました\n", len(result.Values))
+	fmt.Printf("\n%d 件を更新しました\n", len(changes))
 	return nil
 }

@@ -35,7 +35,7 @@ func TestUpdateNutritionRoundsSalt(t *testing.T) {
 
 	salt := 1.4
 	calorie := 196
-	if err := UpdateNutrition(conn, 1202, 370, &calorie, &salt); err != nil {
+	if err := UpdateNutrition(conn, 1202, 336, 370, &calorie, &salt); err != nil {
 		t.Fatal(err)
 	}
 
@@ -62,5 +62,49 @@ func TestUpdateNutritionRoundsSalt(t *testing.T) {
 	// 370 / 1.1 = 336.36... → 336
 	if gotPriceNoTax != 336 {
 		t.Errorf("price = %d, want 336", gotPriceNoTax)
+	}
+}
+
+
+// 税込価格が変わらない行では、呼び出し側が渡した税抜価格をそのまま
+// 保存することを確認する。350 から逆算すると 318 になるが、実際の
+// 税抜価格は 319 であり、既知の値を壊してはいけない。
+func TestUpdateNutritionKeepsGivenNetPrice(t *testing.T) {
+	conn, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = conn.Close() }()
+
+	if _, err := conn.Exec(`CREATE TABLE menus (
+		id INTEGER PRIMARY KEY, name TEXT, price INTEGER,
+		price_with_tax INTEGER, calorie INTEGER, salt REAL
+	)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.Exec(
+		`INSERT INTO menus VALUES (1208, 'グリーンサラダ', 319, 350, 166, 0.7)`,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	// 税込は 350 のまま、カロリーだけ更新する
+	calorie := 170
+	salt := 0.7
+	if err := UpdateNutrition(conn, 1208, 319, 350, &calorie, &salt); err != nil {
+		t.Fatal(err)
+	}
+
+	var net, gross int
+	if err := conn.QueryRow(
+		`SELECT price, price_with_tax FROM menus WHERE id = 1208`,
+	).Scan(&net, &gross); err != nil {
+		t.Fatal(err)
+	}
+	if net != 319 {
+		t.Errorf("price = %d, want 319 (must not be recomputed from gross)", net)
+	}
+	if gross != 350 {
+		t.Errorf("price_with_tax = %d, want 350", gross)
 	}
 }

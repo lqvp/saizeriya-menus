@@ -76,11 +76,16 @@ type Execer interface {
 
 // UpdateNutrition は 1 行の価格・カロリー・塩分を更新する。
 // 識別子（id / genre_id / pre_id / category_id）は変更しない。
+//
+// priceNoTax は既存の税抜価格。税込価格が変わらない行では、この値を
+// そのまま残す。税込から逆算すると 350 が 318 になるが、実際の
+// 税抜価格は 319 であり、端数処理の違いで既知の値を壊してしまう。
 func UpdateNutrition(
-	conn Execer, id, priceWithTax int, calorie *int, salt *float64,
+	conn Execer,
+	id, priceNoTax, priceWithTax int,
+	calorie *int,
+	salt *float64,
 ) error {
-	priceNoTax := int(float64(priceWithTax)/1.1 + 0.5)
-
 	// salt は小数点以下 1 桁までしか意味を持たない。
 	// float64 をそのまま渡すと 1.4 が 1.39999999999999991 として
 	// SQL に書かれてしまうため、ここで丸める。
