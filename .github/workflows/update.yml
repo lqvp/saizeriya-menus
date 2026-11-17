@@ -43,8 +43,13 @@ jobs:
         working-directory: tools/sync-menu
         run: go run cmd/main.go -db ../../db/saizeriya.db
 
+      # sqlite3 のバージョンによって REAL の出力精度が変わる
+      # （3.46 は 1.39999999999999991、3.54 は 1.4）。
+      # 環境差で無意味な差分が出ないよう salt を正規化する。
       - name: Dump DB to SQL
-        run: sqlite3 db/saizeriya.db ".output db/saizeriya.sql" ".dump"
+        run: |
+          sqlite3 db/saizeriya.db ".output db/saizeriya.sql" ".dump"
+          python3 tools/normalize-dump.py db/saizeriya.sql
 
       - name: Update files
         run: cd tools/converter && go run cmd/main.go --csv --json --md
