@@ -170,14 +170,24 @@ func collectChanges(rows []db.Row, values map[int]match.Resolved) ([]change, map
 		if !ok {
 			continue
 		}
+		// nil は「API に値が無い」を意味する。書き込み時は既存値を保つ。
+		calorie := v.Calorie
+		if calorie == nil {
+			calorie = row.Calorie
+		}
+		salt := v.Salt
+		if salt == nil {
+			salt = row.Salt
+		}
+
 		var fields []string
 		if row.PriceWithTax != v.PriceWithTax {
 			fields = append(fields, "price")
 		}
-		if !sameInt(row.Calorie, v.Calorie) {
+		if !sameInt(row.Calorie, calorie) {
 			fields = append(fields, "kcal")
 		}
-		if !sameFloat(row.Salt, v.Salt) {
+		if !sameFloat(row.Salt, salt) {
 			fields = append(fields, "salt")
 		}
 		if len(fields) > 0 {
@@ -243,8 +253,17 @@ func apply(
 			// 税込価格が変わったときだけ税抜を計算し直す
 			priceNoTax = int(float64(v.PriceWithTax)/1.1 + 0.5)
 		}
+		// nil は「API に値が無い」。既存値をそのまま書き戻す。
+		calorie := v.Calorie
+		if calorie == nil {
+			calorie = row.Calorie
+		}
+		salt := v.Salt
+		if salt == nil {
+			salt = row.Salt
+		}
 		if err := db.UpdateNutrition(
-			tx, c.id, priceNoTax, v.PriceWithTax, v.Calorie, v.Salt,
+			tx, c.id, priceNoTax, v.PriceWithTax, calorie, salt,
 		); err != nil {
 			rollbackErr := tx.Rollback()
 			msg := fmt.Sprintf(

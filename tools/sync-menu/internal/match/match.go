@@ -177,10 +177,23 @@ func ParsePrice(raw string) int {
 }
 
 // Resolved は 1 行分の更新後数値。
+//
+// Calorie / Salt は「API から取れた値」だけを入れる。API が空や「-」を
+// 返した項目は nil のままにして、書き込み時に既存値を保つ。
 type Resolved struct {
 	PriceWithTax int
 	Calorie      *int
 	Salt         *float64
+}
+
+// apiNutrition は API から実際に取れた値。
+// 「API に値があったか」を保持するため、既存値でのフォールバック前の状態で持つ。
+// 伝播はこちらだけを元にすることで、既存値のコピーで伝播先を壊さない。
+type apiNutrition struct {
+	// priceWithTax は API の税込価格。価格が「-」の行は 0。
+	priceWithTax int
+	calorie      *int
+	salt         *float64
 }
 
 // Result はマッチングの結果。
@@ -232,18 +245,36 @@ func Resolve(rows []db.Row, items []fetch.Item) Result {
 	}
 
 	values := map[int]Resolved{}
+	// apiValues は「API から実際に取れた栄養値」。
+	// 伝播ではこちらだけを使う（既存値のコピーで伝播先を壊さないため）。
+	apiValues := map[int]apiNutrition{}
 	var ambiguous []AmbiguousKey
 
 	// 1 パス目: 完全一致
+	//
+	// キーごとの DB 行数を先に数えておく。DB 側に同じキーの行が複数あり
+	// API 候補が 1 件しかない場合、ID 順に割り当てるのは「たまたま
+	// 先頭だった行を選ぶ」だけの推測になる。
+	//
+	// ただし「同じ pre_id を持つ同一商品のペア」（3201/3901 など）は
+	// 2 パス目で正しく揃えられるので、ここでは弾かない。弾くと
+	// 「あとで」版デザートが永久に更新されなくなる。
+	rowCount := map[matchKey]int{}
+	for _, row := range rows {
+		key := matchKey{name: Normalize(row.Name), categoryID: row.CategoryID}
+		rowCount[key]++
+	}
+
 	for _, row := range rows {
 		key := matchKey{name: Normalize(row.Name), categoryID: row.CategoryID}
 		candidates := index[key]
 		if len(candidates) == 0 {
 			continue
 		}
-		if len(candidates) > 1 {
-			// どれがこの行に対応するか決められない。割り当てると
-			// 別商品の値で上書きする恐れがあるため、この行は触らない。
+		// 候補が複数ある場合と、DB 側に同じキーの行が複数あって
+		// pre_id のペアとして救済できない場合は、どれを選ぶか
+		// 決められないので触らない。
+		if len(candidates) > 1 || (rowCount[key] > 1 && !isPairedByPreID(rows, key)) {
 			ambiguous = append(ambiguous, AmbiguousKey{
 				Name:       row.Name,
 				CategoryID: row.CategoryID,
@@ -254,7 +285,8 @@ func Resolve(rows []db.Row, items []fetch.Item) Result {
 		item := candidates[0]
 		delete(index, key)
 
-		price := ParsePrice(item.PriceWithTax)
+		apiPrice := ParsePrice(item.PriceWithTax)
+		price := apiPrice
 		if price == 0 {
 			// 価格が「-」の行は価格を据え置く。ただし栄養値は
 			// API から取れているので、そこは更新する。
@@ -262,10 +294,18 @@ func Resolve(rows []db.Row, items []fetch.Item) Result {
 			// 価格が無いという理由で栄養値まで捨てる理由は無い。
 			price = row.PriceWithTax
 		}
+
+		calorie := parseCalorie(item.Calorie)
+		salt := parseSalt(item.Salt)
+		apiValues[row.ID] = apiNutrition{
+			priceWithTax: apiPrice,
+			calorie:      calorie,
+			salt:         salt,
+		}
 		values[row.ID] = Resolved{
 			PriceWithTax: price,
-			Calorie:      parseCalorie(item.Calorie, row.Calorie),
-			Salt:         parseSalt(item.Salt, row.Salt),
+			Calorie:      calorie,
+			Salt:         salt,
 		}
 	}
 
@@ -295,9 +335,9 @@ func Resolve(rows []db.Row, items []fetch.Item) Result {
 			if len(unit) < 2 {
 				continue
 			}
-			var done *Resolved
+			var done *apiNutrition
 			for _, row := range unit {
-				if v, ok := values[row.ID]; ok {
+				if v, ok := apiValues[row.ID]; ok {
 					done = &v
 					break
 				}
@@ -306,8 +346,20 @@ func Resolve(rows []db.Row, items []fetch.Item) Result {
 				continue
 			}
 			for _, row := range unit {
-				if _, ok := values[row.ID]; !ok {
-					values[row.ID] = *done
+				if _, ok := apiValues[row.ID]; !ok {
+					// 伝播するのは API から取れた値だけ。
+					// 既存値でフォールバックした値までコピーすると、
+					// 伝播先の既存の栄養値を壊す。
+					price := done.priceWithTax
+					if price == 0 {
+						// API に価格が無いなら、伝播先の既存価格を保つ
+						price = row.PriceWithTax
+					}
+					values[row.ID] = Resolved{
+						PriceWithTax: price,
+						Calorie:      done.calorie,
+						Salt:         done.salt,
+					}
 					propagated = append(propagated, row.ID)
 				}
 			}
@@ -322,28 +374,34 @@ func Resolve(rows []db.Row, items []fetch.Item) Result {
 	}
 }
 
-func parseCalorie(raw string, fallback *int) *int {
-	if raw == "" || raw == "-" || raw == "－" {
-		return fallback
+// parseCalorie は API のカロリー表記を int に変換する。
+// 解釈できなければ nil を返す（呼び出し側で既存値を保つ）。
+func parseCalorie(raw string) *int {
+	s := strings.TrimSpace(raw)
+	if s == "" || s == "-" || s == "－" {
+		return nil
 	}
 	n := 0
-	for _, r := range strings.TrimSpace(raw) {
+	for _, r := range s {
 		if r < '0' || r > '9' {
-			return fallback
+			return nil
 		}
 		n = n*10 + int(r-'0')
 	}
 	return &n
 }
 
-func parseSalt(raw string, fallback *float64) *float64 {
-	if raw == "" || raw == "-" || raw == "－" {
-		return fallback
+// parseSalt は API の食塩相当量を float64 に変換する。
+// 解釈できなければ nil を返す（呼び出し側で既存値を保つ）。
+func parseSalt(raw string) *float64 {
+	s := strings.TrimSpace(raw)
+	if s == "" || s == "-" || s == "－" {
+		return nil
 	}
 	var whole, frac float64
 	var div float64 = 1
 	seenDot := false
-	for _, r := range strings.TrimSpace(raw) {
+	for _, r := range s {
 		switch {
 		case r == '.':
 			seenDot = true
@@ -355,9 +413,34 @@ func parseSalt(raw string, fallback *float64) *float64 {
 				whole = whole*10 + float64(r-'0')
 			}
 		default:
-			return fallback
+			return nil
 		}
 	}
 	v := whole + frac
 	return &v
+}
+
+// isPairedByPreID は、同じキーの行が「同一 pre_id を持つペア」として
+// 成立しているかを返す。成立していれば 2 パス目で揃えられるので、
+// 1 パス目でどちらかに割り当てなくてよい。
+//
+// 成立条件:
+//   - すべての行が空でない pre_id を持つ
+//   - pre_id がすべて同じ
+func isPairedByPreID(rows []db.Row, key matchKey) bool {
+	var preID string
+	for _, row := range rows {
+		if Normalize(row.Name) != key.name || row.CategoryID != key.categoryID {
+			continue
+		}
+		if row.PreID == "" {
+			return false
+		}
+		if preID == "" {
+			preID = row.PreID
+		} else if preID != row.PreID {
+			return false
+		}
+	}
+	return preID != ""
 }

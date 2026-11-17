@@ -244,9 +244,13 @@ func TestResolveSkipsAmbiguousRows(t *testing.T) {
 	}
 }
 
-// 候補が一意なら、同じ名前の行が複数あってもそれぞれ独立に解決する
-// （pre_id が NULL のデザートペアなど）。
-func TestResolveUniqueCandidateForDuplicateNames(t *testing.T) {
+// DB 側に同じキーの行が複数あり、API 候補が 1 件しかない場合、
+// ID 順に割り当てない（どちらが正しいか決められないため）。
+//
+// 実データの 3214/3914（ジェラート＆シナモンフォッカチオ）が該当する。
+// 片方だけ更新すると、もう片方が古い値のまま取り残される。
+// 値を入れるより「両方とも触らない」ほうが安全。
+func TestResolveSkipsDuplicateRowsWithSingleCandidate(t *testing.T) {
 	rows := []db.Row{
 		{ID: 3214, Name: "ジェラート＆シナモンフォッカチオ", CategoryID: 1, PriceWithTax: 440},
 		{ID: 3914, Name: "ジェラート＆シナモンフォッカチオ", CategoryID: 1, PriceWithTax: 440},
@@ -257,12 +261,64 @@ func TestResolveUniqueCandidateForDuplicateNames(t *testing.T) {
 
 	got := Resolve(rows, items)
 
-	// 1 件目の行が候補を消費し、2 件目は候補なしのまま残る。
-	// ここで両方に書くと「API に無い行」まで書き換えてしまう。
-	if v, ok := got.Values[3214]; !ok || v.PriceWithTax != 470 {
-		t.Errorf("3214 = %+v, want price 470", v)
+	if len(got.Values) != 0 {
+		t.Errorf("Values = %+v, want nothing assigned", got.Values)
 	}
-	if v, ok := got.Values[3914]; ok {
-		t.Errorf("3914 must be left alone, got %+v", v)
+	if len(got.Ambiguous) != 2 {
+		t.Errorf("Ambiguous = %+v, want 2 entries", got.Ambiguous)
+	}
+}
+
+// 同じキーの行でも pre_id のペアとして成立していれば、
+// 2 パス目で揃う（最初の行に割り当て、もう片方へ伝播する）。
+func TestResolveHandlesPreIDPairWithSingleCandidate(t *testing.T) {
+	rows := []db.Row{
+		{ID: 3201, Name: "ティラミス　クラシコ", CategoryID: 1, PriceWithTax: 300, PreID: "DE01"},
+		{ID: 3901, Name: "ティラミス　クラシコ", CategoryID: 1, PriceWithTax: 300, PreID: "DE01"},
+	}
+	items := []fetch.Item{
+		{Name: "ティラミス　クラシコ", Category: "グランド", PriceWithTax: "320-"},
+	}
+
+	got := Resolve(rows, items)
+
+	if v := got.Values[3201]; v.PriceWithTax != 320 {
+		t.Errorf("3201 = %d, want 320", v.PriceWithTax)
+	}
+	if v := got.Values[3901]; v.PriceWithTax != 320 {
+		t.Errorf("3901 = %d, want 320", v.PriceWithTax)
+	}
+	if len(got.Ambiguous) != 0 {
+		t.Errorf("Ambiguous = %+v, want none", got.Ambiguous)
+	}
+}
+
+// 伝播のとき、API に栄養値が無い項目で伝播先の既存値を壊さないこと。
+func TestResolvePropagationKeepsTargetNutrition(t *testing.T) {
+	srcCal := 100
+	dstCal := 999
+	dstSalt := 9.9
+	rows := []db.Row{
+		{ID: 3201, Name: "ティラミス　クラシコ", CategoryID: 1, PriceWithTax: 300, Calorie: &srcCal, PreID: "DE01"},
+		{ID: 3901, Name: "ティラミス　クラシコ", CategoryID: 1, PriceWithTax: 300,
+			Calorie: &dstCal, Salt: &dstSalt, PreID: "DE01"},
+	}
+	// API は価格だけ返し、カロリー・塩分は空
+	items := []fetch.Item{
+		{Name: "ティラミス　クラシコ", Category: "グランド", PriceWithTax: "320-"},
+	}
+
+	got := Resolve(rows, items)
+
+	v := got.Values[3901]
+	if v.PriceWithTax != 320 {
+		t.Errorf("3901 price = %d, want 320", v.PriceWithTax)
+	}
+	// nil は「API に値が無い」。書き込み時に既存値が使われる。
+	if v.Calorie != nil {
+		t.Errorf("3901 calorie = %v, want nil (API had none, must keep existing)", v.Calorie)
+	}
+	if v.Salt != nil {
+		t.Errorf("3901 salt = %v, want nil (API had none, must keep existing)", v.Salt)
 	}
 }

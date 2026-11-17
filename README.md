@@ -27,18 +27,26 @@
 価格と栄養値は公式アレルギー情報 API から取得しています。GitHub Actions が毎週月曜 3:00 (JST) に自動で取り込みます。手元で実行する場合:
 
 ```bash
-# DB を復元（以降のコマンドはリポジトリ直下で実行）
+# 1. DB を復元（以降のコマンドはリポジトリ直下で実行）
 make restore
 
-# 公式 API から価格・栄養値を取り込む（--dry-run で確認のみ）
+# 2. まず確認だけ（--dry-run は書き込まない）
 cd tools/sync-menu
 go run cmd/main.go -db ../../db/saizeriya.db --dry-run
 cd ../..
 
-# SQL に書き戻して生成物を更新
+# 3. 問題なければ実際に取り込む（--dry-run を外す）
+cd tools/sync-menu
+go run cmd/main.go -db ../../db/saizeriya.db
+cd ../..
+
+# 4. SQL に書き戻して生成物を更新
 make dump
 cd tools/converter && go run cmd/main.go --csv --json --md
 ```
+
+2 と 3 の両方を流す必要があります。`--dry-run` のまま 4 に進むと、
+DB が更新されていないので生成物にも反映されません。
 
 `make restore` / `make dump` は CI と同じ手順をまとめたものです。`make dump` は
 `.dump` のあとに `tools/normalize-dump.py` を通します。これは sqlite3 の

@@ -15,10 +15,18 @@ dump:
 	sqlite3 $(DB_NAME) ".output $(SQL_NAME)" ".dump"
 	python3 tools/normalize-dump.py $(SQL_NAME)
 
-# CI と同じ手順で同期し、差分が出ないことを確認する。
-# 差分が出たら「コミットすべき変更がある」か「正規化が効いていない」。
+# CI と同じ手順で同期する。
 sync:
 	cd tools/sync-menu && go run cmd/main.go -db ../../$(DB_NAME)
 
-check: restore sync dump
+# restore → sync → dump を通し、差分が出ないことを確認する。
+#
+# 前提ターゲットに分けると `make -j` で並行実行され、順序が壊れる
+# （dump が restore より先に走るなど）。1 つのレシピにまとめて
+# 必ずこの順で実行されるようにしている。
+check:
+	$(MAKE) restore
+	$(MAKE) sync
+	$(MAKE) dump
+	@echo "--- 差分（空なら冪等） ---"
 	@git diff --stat -- $(SQL_NAME) || true

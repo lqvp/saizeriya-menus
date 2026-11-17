@@ -30,7 +30,7 @@ erDiagram
         INTEGER price
         INTEGER price_with_tax
         INTEGER calorie
-        REAL salt
+        INTEGER salt
         INTEGER category_id FK
         INTEGER genre_id FK
         INTEGER icon_id FK
@@ -79,11 +79,17 @@ erDiagram
 | `price`          | 税抜価格                    | `INTEGER` | `319`            |
 | `price_with_tax` | 税込価格                    | `INTEGER` | `350`            |
 | `calorie`        | エネルギー(カロリー) (kcal) | `INTEGER` | `192`            |
-| `salt`           | 食塩相当量 (g)              | `REAL`    | `1.5`            |
+| `salt`           | 食塩相当量 (g)              | `INTEGER`※ | `1.5`            |
 | `category_id`    | カテゴリ ID                 | `INTEGER` | `1`              |
 | `genre_id`       | ジャンル ID                 | `INTEGER` | `12`             |
 | `icon_id`        | アイコン ID                 | `INTEGER` | `6`              |
 | `pre_id`         | 旧メニュー ID               | `TEXT`    | `SA02`           |
+
+※ `salt` は DDL 上 `INTEGER` と宣言されているが、実データは `1.4` のような
+小数を含むため、SQLite の型親和性により **REAL として保存される**
+（`SELECT typeof(salt)` で確認できる）。宣言と実体がずれているが、
+DDL を変更すると保存型が変わり、下流の読み取りに影響しうるため、
+このPRでは扱わない。変更する場合は別途マイグレーションとして検討すること。
 
 > [!WARNING]
 > `pre_id` は「商品を一意に指す ID」ではない。テーブルをまたぐと意味が変わるうえ、
