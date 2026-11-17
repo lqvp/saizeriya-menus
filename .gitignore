@@ -1,0 +1,9 @@
+# Go
+*.test
+
+# Python（テスト補助スクリプト用）
+__pycache__/
+*.pyc
+
+# SQLite（make restore で生成する）
+db/*.db
