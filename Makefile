@@ -2,7 +2,7 @@ DB_NAME=db/saizeriya.db
 SQL_NAME=db/saizeriya.sql
 
 restore:
-	rm $(DB_NAME)
+	rm -f $(DB_NAME)
 	sqlite3 $(DB_NAME) < $(SQL_NAME)
 
 dump:

@@ -29,11 +29,20 @@ cd tools/converter && go run cmd/main.go --csv --json --md
 - `db/` — SQLite dump (`saizeriya.sql`); `.db` files are gitignored
 - `tools/converter/` — Go program that reads DB and writes CSV/JSON/MD to repo root
 - `tools/generate-menu-sql/` — Go program that generates SQL inserts from JSON
+- `tools/sync-menu/` — Fetches prices/nutrition from the official allergy API and
+  updates existing rows. Never adds or removes rows: the API omits alcohol and
+  other items, so regenerating from it would drop ~80 rows.
 - `docs/database.md` — DB schema (4 tables: categories, genres, icons, menus)
 
 ## Release
 
 Uses release-please (`simple` release type). Commits following Conventional Commits (`feat:`, `fix:`) trigger version bumps. Pre-1.0: `feat` bumps patch, `BREAKING CHANGE` bumps minor.
+
+## Automated updates
+
+`.github/workflows/update.yml` runs `tools/sync-menu` every Monday 03:00 JST,
+then regenerates the output files and commits them. It needs
+`permissions: contents: write` to push.
 
 ## Gotchas
 

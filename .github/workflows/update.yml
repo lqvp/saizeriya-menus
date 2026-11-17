@@ -1,6 +1,9 @@
 name: Update
 
 on:
+  # 毎週月曜 3:00 JST に公式メニューを取り込む
+  schedule:
+    - cron: "0 18 * * 0"
   push:
     branches-ignore:
       - "main"
@@ -12,17 +15,21 @@ on:
 jobs:
   update:
     runs-on: ubuntu-latest
+    permissions:
+      # 生成物と DB をコミットするため書き込み権限が要る
+      contents: write
 
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v7
+        uses: actions/checkout@v6
 
-      - uses: actions/setup-go@v7
+      - uses: actions/setup-go@v6
         with:
           go-version: "^1.21.3"
           check-latest: true
           cache-dependency-path: |
             tools/converter/go.sum
+            tools/sync-menu/go.sum
 
       - name: Restore DB
         uses: ryohidaka/action-restore-sqlite@v0.1.0
@@ -30,12 +37,21 @@ jobs:
           db: "db/saizeriya.db"
           dump-file: "db/saizeriya.sql"
 
+      # 公式のアレルギー情報 API から価格・栄養値を取り込む。
+      # 行の追加・削除はしない（API に対象外の商品があるため）。
+      - name: Sync prices from official API
+        working-directory: tools/sync-menu
+        run: go run cmd/main.go -db ../../db/saizeriya.db
+
+      - name: Dump DB to SQL
+        run: sqlite3 db/saizeriya.db ".output db/saizeriya.sql" ".dump"
+
       - name: Update files
         run: cd tools/converter && go run cmd/main.go --csv --json --md
 
       - name: Commit and push changes
         uses: ryohidaka/action-commit-push@v0.6.0
         with:
-          files: "saizeriya.csv saizeriya.json saizeriya.md"
-          commit-message: "chore: Update files"
+          files: "db/saizeriya.sql saizeriya.csv saizeriya.json saizeriya.md"
+          commit-message: "chore: Update menu data from official API"
           rebase: true

@@ -22,6 +22,27 @@
 - [JSON](./saizeriya.json)
 - [Markdown](./saizeriya.md)
 
+## データの更新
+
+価格と栄養値は公式アレルギー情報 API から取得しています。GitHub Actions が毎週月曜 3:00 (JST) に自動で取り込みます。手元で実行する場合:
+
+```bash
+# DB を復元
+sqlite3 db/saizeriya.db < db/saizeriya.sql
+
+# 公式 API から価格・栄養値を取り込む（--dry-run で確認のみ）
+cd tools/sync-menu
+go run cmd/main.go -db ../../db/saizeriya.db --dry-run
+
+# SQL に書き戻して生成物を更新
+cd ../..
+sqlite3 db/saizeriya.db ".output db/saizeriya.sql" ".dump"
+cd tools/converter && go run cmd/main.go --csv --json --md
+```
+
+> [!NOTE]
+> アレルギー情報 API はアレルゲン表示の対象商品しか返しません（酒類・ドリンクバー等が含まれない）。そのため `sync-menu` は既存行を残したまま価格と栄養値だけを更新し、行の追加・削除は行いません。
+
 ## [コントリビュートガイド](./CONTRIBUTING.md)
 
 ## 出典元
