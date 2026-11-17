@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.12.0](https://github.com/lqvp/saizeriya-menus/compare/v0.11.0...v0.12.0) (2026-11-17)
+
+
+### Features
+
+* automate menu data sync from the official API ([5367cec](https://github.com/lqvp/saizeriya-menus/commit/5367cecf0c85f2abc89d1f77597a9c8a9fd9e527))
+* automate menu data sync from the official API ([fd1c434](https://github.com/lqvp/saizeriya-menus/commit/fd1c4344071a46ded386699305e28adb62fdc624))
+
+
+### Bug Fixes
+
+* **ci:** restore action versions to v7, make rollback test real ([92f5cd5](https://github.com/lqvp/saizeriya-menus/commit/92f5cd53c465f0c1e25ea81c5a85da025ea3bd23))
+* correct the salt column index in dump normalization ([90bb218](https://github.com/lqvp/saizeriya-menus/commit/90bb2187ce9da507e5ee989f1baf551b48888918))
+* guard against silent data corruption in menu sync ([7590712](https://github.com/lqvp/saizeriya-menus/commit/759071224a48d8578bf9161b864a32feb9ac46e6))
+* normalize salt formatting in the SQL dump ([fd2e58b](https://github.com/lqvp/saizeriya-menus/commit/fd2e58bf166846ea1ee5ee0c0bfe4bcc0f5e6317))
+* round salt to one decimal before writing ([6b0d928](https://github.com/lqvp/saizeriya-menus/commit/6b0d928a1f793ed19c17174dcef6a9f3d0347b95))
+* skip the commit when only last_updated changed ([ef58c57](https://github.com/lqvp/saizeriya-menus/commit/ef58c5752544b10d0a12b8e28cc2dd4740ae8838))
+* stop guessing matches for duplicate rows, keep target nutrition ([b47afd2](https://github.com/lqvp/saizeriya-menus/commit/b47afd2643717a104e00a54fe37e53a4b6a736b6))
+* update nutrition for rows without a price, tighten normalize checks ([9c75138](https://github.com/lqvp/saizeriya-menus/commit/9c751385cc21202b62022e908a017c634ab55e42))
+* write nutrition changes even when the price is unchanged ([b0c57cd](https://github.com/lqvp/saizeriya-menus/commit/b0c57cd9c53b7ea197503616d20d88fde990219a))
+
 ## [0.11.0](https://github.com/ryohidaka/saizeriya-menus/compare/v0.10.0...v0.11.0) (2026-03-06)
 
 
