@@ -5,7 +5,9 @@ sqlite3 のバージョンによって REAL の出力精度が変わる。
 3.46 は 1.39999999999999991、3.54 は 1.4 と書き出すため、
 環境が違うと意味のない差分が出てしまう。
 
-menus の INSERT は 13 列で、11 番目（0 始まりで 10）が salt。
+menus の INSERT は 13 列で、8 番目（0 始まりで 7）が salt:
+  id, name, name_en, name_zh, price, price_with_tax, calorie, salt,
+  category_id, genre_id, is_alcohol, icon_id, pre_id
 これを小数点 1 桁に丸め直す。
 """
 
@@ -20,11 +22,11 @@ def round_salt(match: re.Match) -> str:
     if len(parts) != 13:
         return match.group(0)
     try:
-        value = float(parts[10])
+        value = float(parts[7])
     except ValueError:
         return match.group(0)
     # 1.0 -> 1, 1.4 -> 1.4
-    parts[10] = f"{value:.1f}".rstrip("0").rstrip(".")
+    parts[7] = f"{value:.1f}".rstrip("0").rstrip(".")
     return f"INSERT INTO menus VALUES({','.join(parts)});"
 
 

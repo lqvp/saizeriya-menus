@@ -39,6 +39,10 @@ jobs:
 
       # 公式のアレルギー情報 API から価格・栄養値を取り込む。
       # 行の追加・削除はしない（API に対象外の商品があるため）。
+      - name: Test sync tool
+        working-directory: tools/sync-menu
+        run: go test ./...
+
       - name: Sync prices from official API
         working-directory: tools/sync-menu
         run: go run cmd/main.go -db ../../db/saizeriya.db
