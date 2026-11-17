@@ -4,6 +4,7 @@
 # Python（テスト補助スクリプト用）
 __pycache__/
 *.pyc
+.pytest_cache/
 
 # SQLite（make restore で生成する）
 # db/.gitignore にも *.db があるが、リポジトリ直下から見ても

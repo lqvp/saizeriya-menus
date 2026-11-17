@@ -256,7 +256,11 @@ func Resolve(rows []db.Row, items []fetch.Item) Result {
 
 		price := ParsePrice(item.PriceWithTax)
 		if price == 0 {
-			continue // 価格が取れない行（「-」表記）は既存値を残す
+			// 価格が「-」の行は価格を据え置く。ただし栄養値は
+			// API から取れているので、そこは更新する。
+			// 調味料・ランチの小皿・モーニングの一部が該当し、
+			// 価格が無いという理由で栄養値まで捨てる理由は無い。
+			price = row.PriceWithTax
 		}
 		values[row.ID] = Resolved{
 			PriceWithTax: price,

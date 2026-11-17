@@ -126,10 +126,16 @@ def format_salt(raw: str) -> str:
 
 
 def normalize_sql(sql: str) -> tuple[str, int]:
-    """SQL 全体を正規化し、(変換後, 変換した行数) を返す。"""
+    """SQL 全体を正規化し、(変換後, 変換した行数) を返す。
+
+    menus の INSERT が 1 行も無かったら NormalizeError にする。
+    sqlite3 の .dump が途中で落ちた場合、空に近いファイルをそのまま
+    「正常終了」で通してしまい、DB を空で上書きする事故につながる。
+    """
     out: list[str] = []
     pos = 0
     converted = 0
+    rows = 0
 
     while True:
         start = sql.find(INSERT_PREFIX, pos)
@@ -157,11 +163,18 @@ def normalize_sql(sql: str) -> tuple[str, int]:
         if new_salt != values[SALT_INDEX]:
             converted += 1
         values[SALT_INDEX] = new_salt
+        rows += 1
 
         out.append(sql[pos : values_start + 1])
         out.append(",".join(values))
         out.append(")")
         pos = end + 1
+
+    if rows == 0:
+        raise NormalizeError(
+            "menus の INSERT が 1 行もありません。"
+            "sqlite3 の .dump が失敗していないか確認してください"
+        )
 
     return drop_version_noise("".join(out)), converted
 
@@ -205,8 +218,14 @@ def main() -> int:
         return 1
 
     path = sys.argv[1]
-    with open(path, encoding="utf-8") as f:
-        sql = f.read()
+    try:
+        with open(path, encoding="utf-8") as f:
+            sql = f.read()
+    except OSError as exc:
+        # トレースバックではなく、何が起きたか分かるメッセージにする。
+        # 途中で落ちた場合はここに来ないので、ファイルは壊さない。
+        print(f"SQL ファイルを読めませんでした: {exc}", file=sys.stderr)
+        return 1
 
     try:
         normalized, converted = normalize_sql(sql)

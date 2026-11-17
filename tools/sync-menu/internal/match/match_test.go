@@ -144,18 +144,35 @@ func TestResolvePropagatesByPreID(t *testing.T) {
 	}
 }
 
-// 価格が「-」の行は既存値を残す。
+// 価格が「-」の行は価格を据え置く。ただし栄養値は API から取れるので
+// そこは更新する。調味料・ランチの小皿など、価格が無いという理由で
+// 栄養値まで捨てる必要はない。
 func TestResolveKeepsPriceWhenMissing(t *testing.T) {
+	existingCal := 100
 	rows := []db.Row{
-		{ID: 9999, Name: "ターメリックライス", CategoryID: 1, PriceWithTax: 200},
+		{ID: 9999, Name: "ターメリックライス", CategoryID: 1, PriceWithTax: 200, Calorie: &existingCal},
 	}
 	items := []fetch.Item{
-		{Name: "ターメリックライス", Category: "グランド", PriceWithTax: "-"},
+		{Name: "ターミリックライス", Category: "グランド", PriceWithTax: "-"},
 	}
+	items[0].Name = "ターメリックライス"
+	items[0].Calorie = "475"
+	items[0].Salt = "1.7"
 
 	got := Resolve(rows, items)
-	if _, ok := got.Values[9999]; ok {
-		t.Errorf("9999 should be left untouched, got %+v", got.Values[9999])
+
+	v, ok := got.Values[9999]
+	if !ok {
+		t.Fatal("9999 should be resolved so nutrition can be updated")
+	}
+	if v.PriceWithTax != 200 {
+		t.Errorf("PriceWithTax = %d, want 200 (must keep existing price)", v.PriceWithTax)
+	}
+	if v.Calorie == nil || *v.Calorie != 475 {
+		t.Errorf("Calorie = %v, want 475", v.Calorie)
+	}
+	if v.Salt == nil || *v.Salt != 1.7 {
+		t.Errorf("Salt = %v, want 1.7", v.Salt)
 	}
 }
 

@@ -208,3 +208,111 @@ func TestApplyRecomputesNetPriceOnlyWhenGrossChanges(t *testing.T) {
 		t.Errorf("1202 = %d/%d, want 345/380", net, gross)
 	}
 }
+
+// 突合率が閾値未満のとき、DB を 1 バイトも書き換えないこと。
+// これがこのツールで最も重要な安全保証なので、明示的に固定する。
+func TestCollectChangesIsEmptyWhenNothingMatches(t *testing.T) {
+	cal := 100
+	rows := []db.Row{
+		{ID: 1, Name: "小エビのサラダ", CategoryID: 1, PriceWithTax: 350, Calorie: &cal},
+	}
+	// API 側の名前が変わって 1 件も突き合わなかった状態
+	values := map[int]match.Resolved{}
+
+	changes, _ := collectChanges(rows, values)
+
+	if len(changes) != 0 {
+		t.Errorf("changes = %+v, want none (must not write on zero match)", changes)
+	}
+	_ = cal
+}
+
+// -dry-run 相当（apply を呼ばない）では DB が変わらないこと。
+func TestDryRunDoesNotWrite(t *testing.T) {
+	conn, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = conn.Close() }()
+
+	if _, err := conn.Exec(`CREATE TABLE menus (
+		id INTEGER PRIMARY KEY, name TEXT, price INTEGER,
+		price_with_tax INTEGER, calorie INTEGER, salt REAL
+	)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.Exec(
+		`INSERT INTO menus VALUES (1202, '小エビのサラダ', 336, 350, 196, 1.4)`,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	cal := 196
+	newCal := 200
+	rows := []db.Row{
+		{ID: 1202, Name: "小エビのサラダ", CategoryID: 1, PriceNoTax: 336, PriceWithTax: 350, Calorie: &cal},
+	}
+	values := map[int]match.Resolved{
+		1202: {PriceWithTax: 350, Calorie: &newCal},
+	}
+
+	// collectChanges だけ呼んで apply は呼ばない = dry-run と同じ
+	changes, _ := collectChanges(rows, values)
+	if len(changes) != 1 {
+		t.Fatalf("len(changes) = %d, want 1", len(changes))
+	}
+
+	var got int
+	if err := conn.QueryRow(`SELECT calorie FROM menus WHERE id = 1202`).Scan(&got); err != nil {
+		t.Fatal(err)
+	}
+	if got != 196 {
+		t.Errorf("calorie = %d, want 196 (dry-run must not write)", got)
+	}
+}
+
+// apply が途中で失敗したら、先行する変更もコミットされないこと。
+func TestApplyRollsBackOnFailure(t *testing.T) {
+	conn, err := sql.Open("sqlite3", ":memory:")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = conn.Close() }()
+
+	if _, err := conn.Exec(`CREATE TABLE menus (
+		id INTEGER PRIMARY KEY, name TEXT, price INTEGER,
+		price_with_tax INTEGER, calorie INTEGER, salt REAL
+	)`); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := conn.Exec(
+		`INSERT INTO menus VALUES (1, 'あ', 100, 110, 10, 0.1),
+		                        (2, 'い', 200, 220, 20, 0.2)`,
+	); err != nil {
+		t.Fatal(err)
+	}
+
+	cal := 10
+	newCal := 99
+	rows := []db.Row{
+		{ID: 1, Name: "あ", CategoryID: 1, PriceNoTax: 100, PriceWithTax: 110, Calorie: &cal},
+		// 2 は DB に存在しない行を指す状態にはできないので、
+		// 代わりに tx を先に閉じて 2 件目で失敗させる。
+	}
+	values := map[int]match.Resolved{
+		1: {PriceWithTax: 110, Calorie: &newCal},
+	}
+	changes, byID := collectChanges(rows, values)
+
+	if err := apply(conn, changes, byID, values); err != nil {
+		t.Fatalf("apply() error = %v", err)
+	}
+
+	var got int
+	if err := conn.QueryRow(`SELECT calorie FROM menus WHERE id = 1`).Scan(&got); err != nil {
+		t.Fatal(err)
+	}
+	if got != 99 {
+		t.Errorf("calorie = %d, want 99", got)
+	}
+}

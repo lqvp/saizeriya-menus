@@ -56,8 +56,54 @@ class NormalizeDumpTest(unittest.TestCase):
 
     def test_leaves_other_tables_alone(self):
         """menus 以外の INSERT は触らない。"""
-        src = "INSERT INTO categories VALUES(1,'グランド','Grand Menu','主');"
+        src = (
+            "INSERT INTO categories VALUES(1,'グランド','Grand Menu','主');\n"
+            "INSERT INTO menus VALUES(1,'あ','a','a',1,2,3,1,1,1,0,1,'X1');\n"
+        )
         self.assertEqual(normalize(src), src)
+
+    def test_fails_on_empty_file(self):
+        """空ファイルは「正常終了」させない。
+
+        途中で .dump が落ちた場合に、空に近い SQL を書き戻す事故を防ぐ。
+        """
+        result = run_script("")
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("1 行もありません", result.stderr)
+
+    def test_fails_when_no_menus_insert(self):
+        """menus の INSERT が無いファイルも失敗させる。"""
+        src = "INSERT INTO categories VALUES(1,'グランド','Grand Menu','主');\n"
+        result = run_script(src)
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("1 行もありません", result.stderr)
+
+    def test_fails_on_missing_file(self):
+        """存在しないパスはトレースバックではなく整形されたエラーにする。"""
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT), "/nonexistent/path/to.sql"],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertIn("読めませんでした", result.stderr)
+        self.assertNotIn("Traceback", result.stderr)
+
+    def test_does_not_touch_file_on_failure(self):
+        """失敗したときはファイルを書き換えない（部分破壊を避ける）。"""
+        broken = "INSERT INTO menus VALUES(1,'あ',1,2);\n"
+        with tempfile.NamedTemporaryFile("w", suffix=".sql", delete=False) as f:
+            f.write(broken)
+            path = f.name
+        result = subprocess.run(
+            [sys.executable, str(SCRIPT), path],
+            capture_output=True,
+            text=True,
+            check=False,
+        )
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(Path(path).read_text(), broken)
 
     def test_leaves_null_salt_alone(self):
         """salt が NULL の行はそのまま。"""
@@ -145,7 +191,7 @@ class NormalizeDumpTest(unittest.TestCase):
         3.46 は出さないため、そのままだとバージョン差で毎回差分になる。
         """
         src = (
-            "INSERT INTO menus VALUES(1,'あ','a','a',1,2,3,1.0,1,1,0,1,'X1');\n"
+            "INSERT INTO menus VALUES(1,'あ','a','a',1,2,3,1,1,1,0,1,'X1');\n"
             "PRAGMA writable_schema=ON;\n"
             "CREATE TABLE IF NOT EXISTS sqlite_sequence(name,seq);\n"
             "DELETE FROM sqlite_sequence;\n"
@@ -161,6 +207,7 @@ class NormalizeDumpTest(unittest.TestCase):
     def test_dedupes_repeated_sqlite_sequence_rows(self):
         """同じ sqlite_sequence 行が重複していたら 1 つに畳む。"""
         src = (
+            "INSERT INTO menus VALUES(1,'あ','a','a',1,2,3,1,1,1,0,1,'X1');\n"
             "DELETE FROM sqlite_sequence;\n"
             "INSERT INTO sqlite_sequence VALUES('categories',6);\n"
             "INSERT INTO sqlite_sequence VALUES('icons',31);\n"
@@ -175,6 +222,7 @@ class NormalizeDumpTest(unittest.TestCase):
     def test_keeps_distinct_sqlite_sequence_rows(self):
         """値が違えば畳まずに残す。"""
         src = (
+            "INSERT INTO menus VALUES(1,'あ','a','a',1,2,3,1,1,1,0,1,'X1');\n"
             "DELETE FROM sqlite_sequence;\n"
             "INSERT INTO sqlite_sequence VALUES('categories',6);\n"
             "INSERT INTO sqlite_sequence VALUES('categories',7);\n"
